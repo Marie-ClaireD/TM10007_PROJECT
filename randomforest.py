@@ -70,7 +70,7 @@ def cross_val_rf(x,y):
 
     performances = []
     for n_tree in n_trees:
-        clf = RandomForestClassifier(n_estimators=n_tree, bootstrap=True, random_state=0, max_features='sqrt')
+        clf = RandomForestClassifier(n_estimators=n_tree, bootstrap=True, random_state=0)
         for train_index, val_index in ss.split(x, y):
                 x_train, x_val = x[train_index], x[val_index]
                 y_train, y_val= y[train_index], y[val_index]
@@ -148,14 +148,3 @@ def leave_one_out_val_rf(x,y):
 
 accuracy = leave_one_out_val_rf(x_train,y_train)
 print(accuracy)
-
-# Feature importance vb:
-#import pandas as pd
-
-# Extract feature importances
-#fi = pd.DataFrame({'feature': list(train.columns),
-                   #'importance': model.feature_importances_}).\
-                   # sort_values('importance', ascending = False)
-
-# Display
-#fi.head()

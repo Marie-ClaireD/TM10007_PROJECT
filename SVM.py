@@ -67,45 +67,46 @@ def split_sets(features, labels):
     """
     Splits the features and labels into a training set (80%) and test set (20%)
     """
-    x_train, x_tmp, y_train, y_tmp = train_test_split(
-    features, labels, train_size=0.8, random_state=1)
+    x_train, x_test, y_train, y_test = train_test_split(
+    features, labels, test_size=0.2, random_state=1)
+    return x_train, x_test, y_train, y_test 
 
-    x_val, x_test,y_val, y_test = train_test_split(
-        x_tmp, y_tmp, train_size=0.5, random_state=1
-    )
-    return x_train, x_val, x_test, y_train, y_val, y_test 
-
-x_train,x_val, x_test, y_train, y_val, y_test = split_sets(features, labels) 
+x_train, x_test, y_train, y_test = split_sets(features, labels) 
 
 #%%
-def support_vector(x,y):
+def support_vector(x, y):
     """ 
-    Support Vectorm Machine using Logistic Regression as a classifier
+    Support vector machine
     """
-    clf = SVC(kernel='linear', gamma='scale')   
-    clf.fit(x, y)   
-    x_train, x_val, x_test, y_train, y_val, y_test = split_sets(features, labels)
+    crss_val = RepeatedKFold(n_splits = 5, n_repeats=10, random_state = None)           
+    crss_val.get_n_splits(x, y)
 
     predict_labels = []
     predict_probas = []
     y_val_total = []
+
+    #idx = np.arange(0, len(y))
     
-    if min(x_train.shape[0], x_train.shape[1]) < 70:
+    for train_index, val_index in crss_val.split(x, y):
+        x_train, x_val = x[train_index], x[val_index]
+        y_train, y_val= y[train_index], y[val_index]
+
+        if min(x_train.shape[0], x_train.shape[1]) < 70:
             print('Not enough input values for PCA with 70 components')
             sys.exit()
-    else:
-        pca = PCA(n_components=70)
-        pca.fit(x_train)
-        x_train = pca.transform(x_train)
-        x_val = pca.transform(x_val)
-
-        lrg=LogisticRegression()
-        lrg.fit(x_train,y_train) 
-        prediction=lrg.predict(x_val)
-        predict_labels.append(prediction)
-        predict = lrg.predict_proba(x_val)[:,1]
-        predict_probas.append(predict)
-        y_val_total.append(y_val)
+        else:
+            pca = PCA(n_components=70)
+            pca.fit(x_train)
+            x_train = pca.transform(x_train)
+            x_val = pca.transform(x_val)
+   
+            clf = SVC(kernel='linear', gamma='scale') 
+            clf.fit(x, y) 
+            prediction=clf.predict(x_val)
+            predict_labels.append(prediction)
+            predict = clf.predict_proba(x_val)[:,1]
+            predict_probas.append(predict)
+            y_val_total.append(y_val)
 
     predict_labels = np.array(predict_labels)
     predict_probas = np.array(predict_probas)
@@ -115,3 +116,6 @@ def support_vector(x,y):
     return predict_labels, predict_probas, y_val_total
 
 predict_labels_svm, predict_proba_svm, y_val_total_svm = support_vector(x_train, y_train)
+
+
+# %%

@@ -171,11 +171,10 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
     return plt
 
 
-fig, axes = plt.subplots(3, 2, figsize=(10, 15))
+fig, axes = plt.subplots(3, 4, figsize=(10, 15))
 
 X = features
 y = labels
-
 title = "Learning Curves (Naive Bayes)"
 # Cross validation with 100 iterations to get smoother mean test and train
 # score curves, each time with 20% data randomly selected as a validation set.
@@ -186,21 +185,30 @@ plot_learning_curve(estimator, title, X, y, axes=axes[:, 0], ylim=(0.2, 1.01),
                     cv=cv, n_jobs=4)
 
 title = r"Learning Curves (SVM, RBF kernel, $\gamma=0.001$)"
-
-# SVC is more expensive so we do a lower number of CV iterations:
+# SVM
 cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
 estimator = SVC(kernel='linear',gamma=0.001)
 plot_learning_curve(estimator, title, X, y, axes=axes[:, 1], ylim=(0, 1.01),
                     cv=cv, n_jobs=4)
 
-plt.show()
 
-from sklearn.ensemble import RandomForestRegressor
-# Random Forest is more expensive so we do a lower number of CV iterations:
+from sklearn.ensemble import RandomForestClassifier
+# Random Forest 
+title = "Learning Curves (Random Forest)"
 cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
-estimator = RandomForestRegressor()
-plot_learning_curve(estimator, title, X, y, axes=axes[:, 1], ylim=(0, 1.01),
+estimator = RandomForestClassifier()
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 2], ylim=(0, 1.01),
+                    cv=cv, n_jobs=4)
+
+
+from sklearn.linear_model import LogisticRegression
+# Logistic regression 
+title = "Learning Curves (Logistic Regression)"
+cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
+estimator = LogisticRegression()
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 3], ylim=(0, 1.01),
                     cv=cv, n_jobs=4)
 
 plt.show()
+
 # %%

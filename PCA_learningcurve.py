@@ -52,9 +52,6 @@ from sklearn.svm import SVC
 from sklearn.model_selection import learning_curve
 from sklearn.model_selection import ShuffleSplit
 
-#%%
-load_digits = load_data()
-
 
 #%%
 def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
@@ -181,14 +178,14 @@ title = "Learning Curves (Naive Bayes)"
 cv = ShuffleSplit(n_splits=100, test_size=0.2, random_state=0)
 
 estimator = GaussianNB()
-plot_learning_curve(estimator, title, X, y, axes=axes[:, 0], ylim=(0.2, 1.01),
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 0], ylim=(0.2, 1.5),
                     cv=cv, n_jobs=4)
 
 title = r"Learning Curves (SVM, RBF kernel, $\gamma=0.001$)"
 # SVM
 cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
 estimator = SVC(kernel='linear',gamma=0.001)
-plot_learning_curve(estimator, title, X, y, axes=axes[:, 1], ylim=(0, 1.01),
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 1], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 
 
@@ -197,7 +194,7 @@ from sklearn.ensemble import RandomForestClassifier
 title = "Learning Curves (Random Forest)"
 cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
 estimator = RandomForestClassifier()
-plot_learning_curve(estimator, title, X, y, axes=axes[:, 2], ylim=(0, 1.01),
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 2], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 
 
@@ -206,7 +203,7 @@ from sklearn.linear_model import LogisticRegression
 title = "Learning Curves (Logistic Regression)"
 cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
 estimator = LogisticRegression()
-plot_learning_curve(estimator, title, X, y, axes=axes[:, 3], ylim=(0, 1.01),
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 3], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 
 plt.show()

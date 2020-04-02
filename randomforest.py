@@ -19,6 +19,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV
 from scipy.stats import randint
 from hn.load_data import load_data
+from pprint import pprint
 
 def load_check_data():
     '''
@@ -117,21 +118,21 @@ def random_forest(x, y):
 
 predict_labels_rf, predict_proba_rf, y_val_total_rf = random_forest(x_train, y_train)
 
-#%% 
+#%% Random Forest n_estimator search
 # Deze klopt nog niet ivm cross validation
 def random_forest_search(x, y):
     """ 
     Random Forest Random Search for Hyperparameters
     """
+
+    crss_val = RepeatedKFold(n_splits = 5, n_repeats=10, random_state = None)           
+    crss_val.get_n_splits(x, y)
+
     predict_labels = []
     predict_probas = []
     y_val_total = []
 
-    param_distributions = {'n_estimators': randint(1, 400)}
-    #param_dist={"n_estimators":[1, 5, 20, 100],
-                #"max_features":randint(5, 30),
-                #"max_depth":randint(2, 18),
-                #"min_samples_leaf":randint(2, 17)}
+    # param_dist={"n_estimators":[1, 5, 20, 100], "max_features":randint(5, 30),"max_depth":randint(2, 18),"min_samples_leaf":randint(2, 17)}
     # for x_train, y_train in split_sets(features, labels): ??
     for train_index, val_index in crss_val.split(x, y): # Hier de normale cross validatie?
         x_train, x_val = x[train_index], x[val_index]
@@ -145,23 +146,28 @@ def random_forest_search(x, y):
             #pca.fit(x_train)
             #x_train = pca.transform(x_train)
             #x_val = pca.transform(x_val)
-            rf = RandomForestClassifier(bootstrap=True, random_state = None)
-            random_search = RandomizedSearchCV(rf, param_distributions=param_distributions, n_iter=20, scoring=Fscorer, cv=5, n_jobs=-1) # hier nogmaals CV?
-            prediction=random_search.predict(x_val)
+            param_dist = {"n_estimators": randint(1, 300),
+                          "max_features": randint(5, 30),
+                          "max_depth": randint(2, 18),
+                          "min_samples_leaf": randint(1, 17)}
+            clf = RandomForestClassifier(bootstrap=True, random_state=None)
+            random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=20, cv=5, n_jobs=-1) #Hier nog een keer CV?
+            model = random_search.fit(x, y)
+            prediction = random_search.predict(x_val)
             predict_labels.append(prediction)
             predict = random_search.predict_proba(x_val)[:,1]
             predict_probas.append(predict)
             y_val_total.append(y_val)
-
+    
     predict_labels = np.array(predict_labels)
     predict_probas = np.array(predict_probas)
     #print(predict_labels)
     #print(predict_probas)
-
+    pprint(model.best_estimator_.get_params())
+    
     return predict_labels, predict_probas, y_val_total
 
 predict_labels_rf_s, predict_proba_rf_s, y_val_total_rf_s = random_forest_search(x_train, y_train)
-
 
 #%%
   # Hyperparameters: 

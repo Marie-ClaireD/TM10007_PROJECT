@@ -76,11 +76,13 @@ def cross_val(x, y):
     Cross validation using a Logistic Regression classifier (5 folds)
     '''
 
-    crss_val = RepeatedKFold(n_splits=5, n_repeats=100, random_state=None)        
+    crss_val = RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)        
     crss_val.get_n_splits(x, y)
 
     accuracies = []
     auc_scores = []
+    specificities = []
+    sensitivities = []
     tprs = []
     aucs = []
     base_fpr = np.linspace(0, 1, 101)
@@ -101,12 +103,18 @@ def cross_val(x, y):
             lrg = LogisticRegression()
             lrg.fit(x_train, y_train)
             prediction = lrg.predict(x_val)
-                                
-            accuracies.append(accuracy_score(y_val, prediction))
+
+            performance_scores = pd.DataFrame()                    
             auc_scores.append(roc_auc_score(y_val, prediction))
-            performance_scores = pd.DataFrame()
+            conf_mat = confusion_matrix(y_val, prediction)
+            total = sum(sum(conf_mat))
+            accuracies.append((conf_mat[0, 0]+conf_mat[1, 1])/total)
+            sensitivities.append(conf_mat[0, 0]/(conf_mat[0, 0]+conf_mat[0, 1]))
+            specificities.append(conf_mat[1, 1]/(conf_mat[1, 0]+conf_mat[1, 1]))
             performance_scores['Accuracy'] = accuracies
             performance_scores['AUC'] = auc_scores
+            performance_scores['Sensitivity'] = sensitivities
+            performance_scores['Specificity'] = specificities
 
             predicted_probas = lrg.predict_proba(x_val)[:, 1]
             fpr, tpr, _ = roc_curve(y_val, predicted_probas)
@@ -142,5 +150,4 @@ def cross_val(x, y):
 
 
 performances = cross_val(x_train, y_train)
-
-
+print(performances)

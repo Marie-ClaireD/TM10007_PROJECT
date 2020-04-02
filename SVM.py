@@ -91,22 +91,22 @@ def support_vector(x, y):
         x_train, x_val = x[train_index], x[val_index]
         y_train, y_val= y[train_index], y[val_index]
 
-        if min(x_train.shape[0], x_train.shape[1]) < 70:
-            print('Not enough input values for PCA with 70 components')
-            sys.exit()
-        else:
-            pca = PCA(n_components=70)
-            pca.fit(x_train)
-            x_train = pca.transform(x_train)
-            x_val = pca.transform(x_val)
+        #if min(x_train.shape[0], x_train.shape[1]) < 70:
+        #    print('Not enough input values for PCA with 70 components')
+        #    sys.exit()
+        #else:
+            #pca = PCA(n_components=70)
+            #pca.fit(x_train)
+            #x_train = pca.transform(x_train)
+            #x_val = pca.transform(x_val)
    
-            clf = SVC(kernel='linear', gamma='scale') 
-            clf.fit(x, y) 
-            prediction=clf.predict(x_val)
-            predict_labels.append(prediction)
-            predict = clf.predict_proba(x_val)[:,1]
-            predict_probas.append(predict)
-            y_val_total.append(y_val)
+        clf = SVC(kernel='linear', gamma='scale', probability=True) 
+        clf.fit(x, y) 
+        prediction=clf.predict(x_val)
+        predict_labels.append(prediction)
+        predict = clf.predict_proba(x_val)[:,1]
+        predict_probas.append(predict)
+        y_val_total.append(y_val)
 
     predict_labels = np.array(predict_labels)
     predict_probas = np.array(predict_probas)

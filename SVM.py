@@ -11,11 +11,17 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.feature_selection import mutual_info_classif
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import auc, roc_curve, accuracy_score, confusion_matrix
+from sklearn.metrics import auc, roc_curve, accuracy_score, confusion_matrix, roc_auc_score
 from scipy import interp
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split, GridSearchCV
+from pprint import pprint
+from scipy.stats import randint
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import RandomizedSearchCV
 
+
+#%%
 #%%
 
 
@@ -78,44 +84,81 @@ def support_vector(x, y):
     """ 
     Support vector machine
     """
-    crss_val = RepeatedKFold(n_splits = 5, n_repeats=10, random_state = None)           
+    crss_val = RepeatedKFold(n_splits = 5, n_repeats=1, random_state = None)           
     crss_val.get_n_splits(x, y)
 
-    predict_labels = []
-    predict_probas = []
-    y_val_total = []
-
+    accuracy_rs = []
+    accuracies = []
+    auc_scores = []
+    specificities = []
+    sensitivities = []
+    tprs = []
+    aucs = []
+    base_fpr = np.linspace(0, 1, 101)
+    #predict_labels = []
+    #predict_probas = []
+    #y_val_total = []
+    param_dist = {'C' : [0.1, 1, 10, 100],
+                  'gamma': [1,0.1,0.01,0.001],
+                  'kernel': ['rbf','poly','sigmoid','linear']}
+    clf = SVC(probability=True) 
     #idx = np.arange(0, len(y))
-    
+    random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, n_jobs=-1) #Hier nog een keer CV?
+    model = random_search.fit(x, y)
+    hyperparameters = model.best_estimator_.get_params()
+    print(hyperparameters)
+
     for train_index, val_index in crss_val.split(x, y):
         x_train, x_val = x[train_index], x[val_index]
         y_train, y_val= y[train_index], y[val_index]
+        
+        clf = SVC(probability=True, C=hyperparameters.get('c'), gamma=hyperparameters.get('gamma'), kernel=hyperparameters.get('kernel'))
+        clf.fit(x_train, y_train)
+        prediction = clf.predict(x_val)        
+        performance_scores = pd.DataFrame()                    
+        auc_scores.append(roc_auc_score(y_val, prediction))
+        conf_mat = confusion_matrix(y_val, prediction)
+        total = sum(sum(conf_mat))
+        accuracies.append((conf_mat[0, 0]+conf_mat[1, 1])/total)
+        sensitivities.append(conf_mat[0, 0]/(conf_mat[0, 0]+conf_mat[0, 1]))
+        specificities.append(conf_mat[1, 1]/(conf_mat[1, 0]+conf_mat[1, 1]))
+        performance_scores['Accuracy'] = accuracies
+        performance_scores['AUC'] = auc_scores
+        performance_scores['Sensitivity'] = sensitivities
+        performance_scores['Specificity'] = specificities
 
-        #if min(x_train.shape[0], x_train.shape[1]) < 70:
-        #    print('Not enough input values for PCA with 70 components')
-        #    sys.exit()
-        #else:
-            #pca = PCA(n_components=70)
-            #pca.fit(x_train)
-            #x_train = pca.transform(x_train)
-            #x_val = pca.transform(x_val)
-   
-        clf = SVC(kernel='linear', gamma='scale', probability=True) 
-        clf.fit(x, y) 
-        prediction=clf.predict(x_val)
-        predict_labels.append(prediction)
-        predict = clf.predict_proba(x_val)[:,1]
-        predict_probas.append(predict)
-        y_val_total.append(y_val)
+        predicted_probas = random_search.predict_proba(x_val)[:, 1]
+        fpr, tpr, _ = roc_curve(y_val, predicted_probas)
+        roc_auc = auc(fpr, tpr)
+        aucs.append(roc_auc)
+        tpr = interp(base_fpr, fpr, tpr)
+        tpr[0] = 0.0
+        tprs.append(tpr)
 
-    predict_labels = np.array(predict_labels)
-    predict_probas = np.array(predict_probas)
-    print(predict_labels)
-    #print(predict_probas)
+    tprs = np.array(tprs)
+    mean_tprs = tprs.mean(axis=0)
+    std = tprs.std(axis=0)
 
-    return predict_labels, predict_probas, y_val_total
+    mean_auc = auc(base_fpr, mean_tprs)
+    std_auc = np.std(aucs)
 
-predict_labels_svm, predict_proba_svm, y_val_total_svm = support_vector(x_train, y_train)
+    tprs_upper = np.minimum(mean_tprs + std, 1)
+    tprs_lower = mean_tprs - std
+    plt.figure(figsize=(12, 8))
+    plt.plot(base_fpr, mean_tprs, 'c', alpha=0.8, label=r'Mean ROC (AUC = %0.2f $\pm$ %0.2f)' % (mean_auc, std_auc),)
+    plt.fill_between(base_fpr, tprs_lower, tprs_upper, color='c', alpha=0.2)
+    plt.plot([0, 1], [0, 1], linestyle='--', lw=2, color='k', label='Chance level', alpha=0.8)
+    plt.xlim([-0.01, 1.01])
+    plt.ylim([-0.01, 1.01])
+    plt.ylabel('True Positive Rate')
+    plt.xlabel('False Positive Rate')
+    plt.legend(loc="lower right")
+    plt.title('Receiver operating characteristic (ROC) curve')
+    plt.grid()
+    plt.show()
 
+    return performance_scores
 
-# %%
+performances = support_vector(x_train, y_train)
+print(performances)
+

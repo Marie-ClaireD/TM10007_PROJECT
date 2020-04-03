@@ -64,11 +64,17 @@ def split_sets(x, y):
     '''
     Splits the features and labels into a training set (80%) and test set (20%)
     '''
-    x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=1)
-    return x_train, x_test, y_train, y_test 
-
+    x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=None)
+    return x_train, x_test, y_train, y_test
+    
 
 x_train, x_test, y_train, y_test = split_sets(features, labels)
+
+def split_sets2(x,y):
+    '''
+    '''
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=None)
+    x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.25, random_state=None) 
 
 
 def cross_val(x, y):
@@ -90,6 +96,8 @@ def cross_val(x, y):
     for train_index, val_index in crss_val.split(x, y):
         x_train, x_val = x[train_index], x[val_index]
         y_train, y_val = y[train_index], y[val_index]
+        print(x_val.shape)
+        print(x_train.shape)
 
         if min(x_train.shape[0], x_train.shape[1]) < 70:
             print('Not enough input values for PCA with 70 components')

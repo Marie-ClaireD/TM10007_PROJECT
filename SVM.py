@@ -98,12 +98,12 @@ def support_vector(x, y):
     #predict_labels = []
     #predict_probas = []
     #y_val_total = []
-    param_dist = {'C' : [0.1, 1, 10, 100],
-                  'gamma': [1,0.1,0.01,0.001],
-                  'kernel': ['rbf','poly','sigmoid','linear']}
+    param_dist = {"C": randint(0.1, 100),
+                  "gamma": ['auto','scale'],
+                  "kernel": ['rbf','poly','sigmoid','linear']}
     clf = SVC(probability=True) 
     #idx = np.arange(0, len(y))
-    random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, n_jobs=-1) #Hier nog een keer CV?
+    random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=20, cv=5, n_jobs=-1) #Hier nog een keer CV?
     model = random_search.fit(x, y)
     hyperparameters = model.best_estimator_.get_params()
     print(hyperparameters)
@@ -112,7 +112,7 @@ def support_vector(x, y):
         x_train, x_val = x[train_index], x[val_index]
         y_train, y_val= y[train_index], y[val_index]
         
-        clf = SVC(probability=True, C=hyperparameters.get('c'), gamma=hyperparameters.get('gamma'), kernel=hyperparameters.get('kernel'))
+        clf = SVC(C=hyperparameters.get("C"), gamma=hyperparameters.get("gamma"), kernel=hyperparameters.get("kernel"), probability=True)
         clf.fit(x_train, y_train)
         prediction = clf.predict(x_val)        
         performance_scores = pd.DataFrame()                    
@@ -162,3 +162,6 @@ def support_vector(x, y):
 performances = support_vector(x_train, y_train)
 print(performances)
 
+
+
+# %%

@@ -52,7 +52,24 @@ from sklearn.svm import SVC
 from sklearn.model_selection import learning_curve
 from sklearn.model_selection import ShuffleSplit
 
+def split_sets(x, y):
+    '''
+    Splits the features and labels into a training set (80%) and test set (20%)
+    '''
+    x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=None)
+    return x_train, x_test, y_train, y_test
+    
 
+x_train, x_test, y_train, y_test = split_sets(features, labels)
+
+def split_sets2(x,y):
+    '''
+    '''
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=None)
+    x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.25, random_state=None) 
+    return x_train, x_val, y_train, y_val
+
+x_train, x_val, y_train, y_val = split_sets2(x_train, y_train)
 #%%
 def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
                         n_jobs=None, train_sizes=np.linspace(.1, 1.0, 5)):
@@ -170,8 +187,8 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
 
 fig, axes = plt.subplots(3, 4, figsize=(10, 15))
 
-X = features
-y = labels
+X = (x_train[0].shape, x_train[1].shape)
+y = (x_val[0].shape, x_val[1].shape)
 title = "Learning Curves (Naive Bayes)"
 # Cross validation with 100 iterations to get smoother mean test and train
 # score curves, each time with 20% data randomly selected as a validation set.

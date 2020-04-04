@@ -112,7 +112,7 @@ def split_sets2(x,y):
 x_train, x_val, y_train, y_val = split_sets2(x_train, y_train)
 #%%
 def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
-                        n_jobs=None, train_sizes=np.linspace(.1, 1.0, 5)):
+                        n_jobs=None, train_sizes=np.linspace(0.1,1,5)):
     """
     Generate 3 plots: the test and training learning curve, the training
     samples vs fit times curve, the fit times vs score curve.
@@ -227,11 +227,12 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
 
 fig, axes = plt.subplots(3, 4, figsize=(10, 15))
 
-#X = (x_train.shape, y_train.shape)
-#y = (x_val.shape, y_val.shape)
+X = features
+y = labels
+
 title = "Learning Curves (Naive Bayes)"
-# Cross validation with 100 iterations to get smoother mean test and train
-# score curves, each time with 20% data randomly selected as a validation set.
+
+# Gaussian Naive Bayes
 cv = ShuffleSplit(n_splits=100, test_size=0.2, random_state=0)
 
 estimator = GaussianNB()

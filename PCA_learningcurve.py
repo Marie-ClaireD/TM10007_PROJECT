@@ -7,6 +7,20 @@ from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 import numpy as np
 
+import pandas as pd
+import numpy as np
+import statistics
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import LeaveOneOut 
+from sklearn.model_selection import RepeatedKFold
+from sklearn.model_selection import StratifiedKFold
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.decomposition import PCA
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import auc, roc_curve, accuracy_score, confusion_matrix
+from scipy import interp
 
 # %%
 
@@ -31,6 +45,32 @@ plt.ylabel('Variance (%)')
 plt.show()
 
 # %%
+from hn.load_data import load_data
+
+def load_check_data():
+    '''
+    Check if the datafile exists and is valid before reading
+    '''
+    # Check whether datafile exists
+    try:
+        data = load_data()
+        print(f'The number of samples: {len(data.index)}')
+        print(f'The number of columns: {len(data.columns)}')
+    except FileNotFoundError:
+        return print("The csv datafile does not exist"), sys.exit()
+    except pd.errors.ParserError:
+        return print('The csv datafile is not a proper csv format.'
+                     'Please provide a data file in csv format.'), sys.exit()
+    # Check whether data is missing.
+    # If any datapoints are missing or NaN, these empty cells are replaced with the average 
+    # of that feature.
+    if data.isnull().values.any():
+        column_mean = data.mean()
+        data = data.fillna(column_mean)
+        print('In the csv data file, some values are missing or NaN.'
+              ' These missing values are replaced by the mean of that feature.')
+    return data
+data = load_check_data()
 # Learning curve
 
 features = data.loc[:, data.columns != 'label'].values
@@ -187,8 +227,8 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
 
 fig, axes = plt.subplots(3, 4, figsize=(10, 15))
 
-X = (x_train[0].shape, x_train[1].shape)
-y = (x_val[0].shape, x_val[1].shape)
+#X = (x_train.shape, y_train.shape)
+#y = (x_val.shape, y_val.shape)
 title = "Learning Curves (Naive Bayes)"
 # Cross validation with 100 iterations to get smoother mean test and train
 # score curves, each time with 20% data randomly selected as a validation set.

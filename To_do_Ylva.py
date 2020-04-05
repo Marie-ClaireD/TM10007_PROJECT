@@ -1,13 +1,13 @@
+import sys
 import pandas as pd
 import numpy as np
-import sys
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import RepeatedKFold
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import auc, roc_curve, accuracy_score, confusion_matrix, roc_auc_score
+from sklearn.metrics import auc, roc_curve, confusion_matrix, roc_auc_score
 from numpy import interp
 
 
@@ -53,7 +53,7 @@ labels = data.loc[:, ['label']].values
 labels = [item if item != 'T12' else 0 for item in labels]
 labels = [item if item != 'T34' else 1 for item in labels]
 labels = np.array(labels)
-print(f'Number of high risk patients: {np.count_nonzero(labels)}') 
+print(f'Number of high risk patients: {np.count_nonzero(labels)}')
 print(f'Number of low risk patients: {len(labels) - np.count_nonzero(labels)}')
 
 # The training set is again divided into a training and a validation set and afterwards
@@ -64,17 +64,19 @@ def split_sets(x, y):
     '''
     Splits the features and labels into a training set (80%) and test set (20%)
     '''
-    x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=None)
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=None)
     return x_train, x_test, y_train, y_test
-    
+  
 
 x_train, x_test, y_train, y_test = split_sets(features, labels)
 
-def split_sets2(x,y):
+
+def split_sets2(x, y):
     '''
     '''
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=None)
-    x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.25, random_state=None) 
+    x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.25, random_state=None)
+    return x_train, x_test, y_train, y_test, x_val, y_val 
 
 
 def cross_val(x, y):
@@ -82,7 +84,7 @@ def cross_val(x, y):
     Cross validation using a Logistic Regression classifier (5 folds)
     '''
 
-    crss_val = RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)        
+    crss_val = RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)
     crss_val.get_n_splits(x, y)
 
     accuracies = []
@@ -96,8 +98,6 @@ def cross_val(x, y):
     for train_index, val_index in crss_val.split(x, y):
         x_train, x_val = x[train_index], x[val_index]
         y_train, y_val = y[train_index], y[val_index]
-        print(x_val.shape)
-        print(x_train.shape)
 
         if min(x_train.shape[0], x_train.shape[1]) < 70:
             print('Not enough input values for PCA with 70 components')
@@ -112,7 +112,7 @@ def cross_val(x, y):
             lrg.fit(x_train, y_train)
             prediction = lrg.predict(x_val)
 
-            performance_scores = pd.DataFrame()                    
+            performance_scores = pd.DataFrame()                  
             auc_scores.append(roc_auc_score(y_val, prediction))
             conf_mat = confusion_matrix(y_val, prediction)
             total = sum(sum(conf_mat))
@@ -131,7 +131,7 @@ def cross_val(x, y):
             tpr = interp(base_fpr, fpr, tpr)
             tpr[0] = 0.0
             tprs.append(tpr)
-    
+ 
     tprs = np.array(tprs)
     mean_tprs = tprs.mean(axis=0)
     std = tprs.std(axis=0)
@@ -153,7 +153,7 @@ def cross_val(x, y):
     plt.title('Receiver operating characteristic (ROC) curve')
     plt.grid()
     plt.show()
-  
+
     return performance_scores
 
 

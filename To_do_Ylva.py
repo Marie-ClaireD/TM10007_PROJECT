@@ -1,14 +1,26 @@
-import sys
 import pandas as pd
 import numpy as np
+import statistics
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import LeaveOneOut 
 from sklearn.model_selection import RepeatedKFold
+from sklearn.model_selection import StratifiedKFold
+from sklearn.feature_selection import mutual_info_classif
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import auc, roc_curve, confusion_matrix, roc_auc_score
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import auc, roc_curve, accuracy_score, confusion_matrix, roc_auc_score
 from numpy import interp
+from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import randint
+from hn.load_data import load_data
+from pprint import pprint
+
 
 
 from hn.load_data import load_data
@@ -70,16 +82,34 @@ def split_sets(x, y):
 
 x_train, x_test, y_train, y_test = split_sets(features, labels)
 
+def get_hyperparameters(x, y):
+    """ 
+    Random Search for Hyperparameters classifiers
+    """
+    
+    clsfs = [KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+    param_distributions = [{"n_neighbors": randint(1, 20)}, {"n_estimators": randint(1, 200),
+                "max_features": randint(5, 30),
+                "max_depth": randint(2, 18),
+                "min_samples_leaf": randint(1, 17)},{"C": randint(0.1, 100),
+                 "gamma": ['auto','scale'],
+                 "kernel": ['rbf','poly','sigmoid','linear']}]
 
-def split_sets2(x, y):
-    '''
-    '''
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=None)
-    x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.25, random_state=None)
-    return x_train, x_test, y_train, y_test, x_val, y_val 
+    hyperparameters_clsfs = []
+    for clf, param_dist in zip(clsfs, param_distributions):
+        random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, n_jobs=-1) #Hier nog een keer CV?
+        model = random_search.fit(x, y)
+        parameters = model.best_estimator_.get_params()
+        pprint(parameters)
+        hyperparameters_clsfs.append(parameters)
+
+    return hyperparameters_clsfs
 
 
-def cross_val(x, y):
+hyperparameters = get_hyperparameters(x_train, y_train)
+
+
+def cross_val_scores(x, y, hyperparameters, clf):
     '''
     Cross validation using a Logistic Regression classifier (5 folds)
     '''
@@ -108,9 +138,8 @@ def cross_val(x, y):
             pca.fit(x_train)
             x_train = pca.transform(x_train)
             x_val = pca.transform(x_val)
-            lrg = LogisticRegression()
-            lrg.fit(x_train, y_train)
-            prediction = lrg.predict(x_val)
+            clf.fit(x_train, y_train)
+            prediction = clf.predict(x_val)
 
             performance_scores = pd.DataFrame()                  
             auc_scores.append(roc_auc_score(y_val, prediction))
@@ -124,7 +153,7 @@ def cross_val(x, y):
             performance_scores['Sensitivity'] = sensitivities
             performance_scores['Specificity'] = specificities
 
-            predicted_probas = lrg.predict_proba(x_val)[:, 1]
+            predicted_probas = clf.predict_proba(x_val)[:, 1]
             fpr, tpr, _ = roc_curve(y_val, predicted_probas)
             roc_auc = auc(fpr, tpr)
             aucs.append(roc_auc)
@@ -150,12 +179,20 @@ def cross_val(x, y):
     plt.ylabel('True Positive Rate')
     plt.xlabel('False Positive Rate')
     plt.legend(loc="lower right")
-    plt.title('Receiver operating characteristic (ROC) curve')
+    plt.title(f'Receiver operating characteristic (ROC) curve {clf}')
     plt.grid()
     plt.show()
 
     return performance_scores
 
 
-performances = cross_val(x_train, y_train)
-print(performances)
+performance_clf = {}
+clsfs = [LogisticRegression(), KNeighborsClassifier(n_neighbors=hyperparameters[0].get('n_neighbors')), RandomForestClassifier(bootstrap=True, max_depth=hyperparameters[1].get('max_depth'), max_features=hyperparameters[1].get('max_features'), min_samples_leaf=hyperparameters[1].get('min_samples_leaf'), n_estimators=hyperparameters[1].get('n_estimators'), random_state=None), SVC(C=hyperparameters[2].get("C"), gamma=hyperparameters[2].get("gamma"), kernel=hyperparameters[2].get("kernel"), probability=True)]
+
+
+for clf in clsfs: 
+    performances = cross_val_scores(x_train, y_train, hyperparameters, clf) 
+    performance_clf[clf] = performances
+print(performance_clf)
+
+

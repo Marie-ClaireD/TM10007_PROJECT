@@ -6,7 +6,22 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 import numpy as np
-
+from scipy.stats import randint
+import pandas as pd
+import numpy as np
+import statistics
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import LeaveOneOut 
+from sklearn.model_selection import RepeatedKFold
+from sklearn.model_selection import StratifiedKFold, learning_curve, ShuffleSplit
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.decomposition import PCA
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.metrics import auc, roc_curve, accuracy_score, confusion_matrix
+from scipy import interp
 import pandas as pd
 import numpy as np
 import statistics
@@ -19,9 +34,18 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.feature_selection import mutual_info_classif
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import auc, roc_curve, accuracy_score, confusion_matrix
-from scipy import interp
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import auc, roc_curve, accuracy_score, confusion_matrix, roc_auc_score
+from numpy import interp
+from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import randint
+from hn.load_data import load_data
+from pprint import pprint
 
+from hn.load_data import load_data
 # %%
 
 from hn.load_data import load_data
@@ -84,6 +108,14 @@ labels = np.array(labels)
 print(f'Number of high risk patients: {np.count_nonzero(labels)}') 
 print(f'Number of low risk patients: {len(labels) - np.count_nonzero(labels)}')
 # %%
+# learning curve
+plt.show()
+clf = LogisticRegression()
+cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
+plot_learning_curve(clf, x_train, y_train, cv=cv)
+#%%
+
+#%%
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.naive_bayes import GaussianNB
@@ -225,45 +257,89 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
     return plt
 
 
-fig, axes = plt.subplots(3, 4, figsize=(10, 15))
+fig, axes = plt.subplots(3, 6, figsize=(10, 15))
+#%%
+def get_hyperparameters(x, y):
+    """ 
+    Random Search for Hyperparameters classifiers
+    """
+    
+    clsfs = [KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+    param_distributions = [{"n_neighbors": randint(1, 20)}, {"n_estimators": randint(1, 200),
+                "max_features": randint(5, 30),
+                "max_depth": randint(2, 18),
+                "min_samples_leaf": randint(1, 17)},{"C": randint(0.1, 100),
+                 "gamma": ['auto','scale'],
+                 "kernel": ['rbf','poly','sigmoid','linear']}]
 
+    hyperparameters_clsfs = []
+    for clf, param_dist in zip(clsfs, param_distributions):
+        random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, n_jobs=-1) #Hier nog een keer CV?
+        model = random_search.fit(x, y)
+        parameters = model.best_estimator_.get_params()
+        pprint(parameters)
+        hyperparameters_clsfs.append(parameters)
+
+    return hyperparameters_clsfs
+
+
+hyperparameters = get_hyperparameters(x_train, y_train)
 X = features
+pca = PCA(n_components=70)
+X = pca.fit_transform(X)
 y = labels
-
+#%%
 title = "Learning Curves (Naive Bayes)"
 
 # Gaussian Naive Bayes
-cv = ShuffleSplit(n_splits=100, test_size=0.2, random_state=0)
+#cv = ShuffleSplit(n_splits=100, test_size=0.2, random_state=0)
 
-estimator = GaussianNB()
-plot_learning_curve(estimator, title, X, y, axes=axes[:, 0], ylim=(0.2, 1.5),
+#estimator = GaussianNB()
+#plot_learning_curve(estimator, title, X, y, axes=axes[:, 0], ylim=(0.2, 1.5),
+#                    cv=cv, n_jobs=4)
+
+#title = r"Learning Curves (SVM, RBF kernel, $\gamma=0.001$)"
+# SVM
+cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=0)
+estimator = SVC()
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 0], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 
-title = r"Learning Curves (SVM, RBF kernel, $\gamma=0.001$)"
-# SVM
-cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
-estimator = SVC(kernel='linear',gamma=0.001)
+# SVM with hyperparameters
+cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=0)
+estimator = SVC(C=hyperparameters.get("C"), gamma=hyperparameters.get("gamma"), kernel=hyperparameters.get("kernel"), probability=True)
 plot_learning_curve(estimator, title, X, y, axes=axes[:, 1], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
-
 
 from sklearn.ensemble import RandomForestClassifier
 # Random Forest 
 title = "Learning Curves (Random Forest)"
-cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
+cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=1)
 estimator = RandomForestClassifier()
 plot_learning_curve(estimator, title, X, y, axes=axes[:, 2], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 
-
-from sklearn.linear_model import LogisticRegression
-# Logistic regression 
-title = "Learning Curves (Logistic Regression)"
-cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
-estimator = LogisticRegression()
+# Random Forest with hyperparameters
+title = "Learning Curves (Random Forest)"
+cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=1)
+estimator = RandomForestClassifier(bootstrap=True, max_depth=hyperparameters.get('max_depth'), max_features=hyperparameters.get('max_features'), min_samples_leaf=hyperparameters.get('min_samples_leaf'), n_estimators=hyperparameters.get('n_estimators'), random_state=None)
 plot_learning_curve(estimator, title, X, y, axes=axes[:, 3], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
+from sklearn.linear_model import LogisticRegression
 
+# Logistic regression 
+title = "Learning Curves (Logistic Regression)"
+cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=0)
+estimator = LogisticRegression()
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 4], ylim=(0, 1.5),
+                    cv=cv, n_jobs=4)
+
+# Logistic regression with hyperparameters
+title = "Learning Curves (Logistic Regression)"
+cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=0)
+estimator = LogisticRegression()
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 5], ylim=(0, 1.5),
+                    cv=cv, n_jobs=4)
 plt.show()
 
 # %%
@@ -361,7 +437,7 @@ def weight_versus_alpha_plot(weight, alphas, features):
     weight = np.array(weight)
     for col in range(0,112, 1):
         plt.plot(alphas, weight[:, col], label = features[col])
-        ax.set_xscale('log')
+        
     plt.axhline(0, color = 'black', linestyle = '--', linewidth = 3)
     
     # manually specify the coordinate of the legend

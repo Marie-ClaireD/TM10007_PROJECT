@@ -90,8 +90,8 @@ print('selected features: {}'.format(len(selected_feat)))
 print('features with coefficients shrank to zero: {}'.format(
       np.sum(sel_.estimator_.coef_ == 0)))
 
-# %% Perform L1 regularization and Linear regression with Lasso
-feat_selec = SelectFromModel(estimator=Lasso(alpha=10**(-10), random_state=42, max_iter = 1000), threshold='median')
+# %% Perform L1 regularization using Linear regression (Lasso)
+feat_selec = SelectFromModel(estimator=Lasso(alpha=10**(-10), random_state=42), threshold='median')
 feat_selec.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
 feat_selec.get_support()
 
@@ -100,22 +100,6 @@ print('total features: {}'.format((x_train.shape[1])))
 print('selected features with Lasso: {}'.format(len(selected_feat)))
 print('features with coefficients shrank to zero: {}'.format(
       np.sum(feat_selec.estimator_.coef_ == 0)))
-
-
-# Set a minimum threshold of 0.70
-model = LassoCV(cv=3)
-sfm = SelectFromModel(model), threshold=0.70)
-sfm.fit(x_train, y_train)
-n_features = sfm.transform(X).shape[1]
- 
-# Extracting the index of important features
-selected_feat = data.columns[sfm.get_support())]
-print('total features: {}'.format((x_train.shape[1])))
-print('selected features with Lasso: {}'.format(len(selected_feat)))
-print('features with coefficients shrank to zero: {}'.format(
-      np.sum(sfmc.estimator_.coef_ == 0)))
-
-
 
 # %% Getting a list of removed features
 removed_feats = data.columns[(sel_.estimator_.coef_ == 0).ravel().tolist()]

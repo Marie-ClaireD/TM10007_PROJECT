@@ -204,7 +204,7 @@ data4 = pd.DataFrame(performance_clf[3], columns=['Accuracy', 'AUC', 'Sensitivit
 
 cdf = pd.concat([data1, data2, data3, data4])
 mdf = pd.melt(cdf, id_vars=['Location'], var_name=['Letter'])
-print(mdf.head())
+
 
 ax = sns.boxplot(x="Location", y="value", hue="Letter", data=mdf)    
 plt.show()

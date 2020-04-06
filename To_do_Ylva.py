@@ -1,3 +1,4 @@
+# %%
 import pandas as pd
 import numpy as np
 import statistics
@@ -21,11 +22,9 @@ from scipy.stats import randint
 from hn.load_data import load_data
 from pprint import pprint
 
-
-
 from hn.load_data import load_data
 
-
+#%%
 def load_check_data():
     '''
     Check if the datafile exists and is valid before reading
@@ -54,7 +53,7 @@ def load_check_data():
 
 data = load_check_data()
 
-
+#%%
 """ Extract feature values and labels """
 # Features
 features = data.loc[:, data.columns != 'label'].values
@@ -68,9 +67,9 @@ labels = np.array(labels)
 print(f'Number of high risk patients: {np.count_nonzero(labels)}')
 print(f'Number of low risk patients: {len(labels) - np.count_nonzero(labels)}')
 
-# The training set is again divided into a training and a validation set and afterwards
+#%%
+# # The training set is again divided into a training and a validation set and afterwards
 # classified using a Kfold cross validation and logistic regression.
-
 
 def split_sets(x, y):
     '''
@@ -82,6 +81,7 @@ def split_sets(x, y):
 
 x_train, x_test, y_train, y_test = split_sets(features, labels)
 
+#%%
 def get_hyperparameters(x, y):
     """ 
     Random Search for Hyperparameters classifiers
@@ -108,7 +108,7 @@ def get_hyperparameters(x, y):
 
 hyperparameters = get_hyperparameters(x_train, y_train)
 
-
+#%%
 def cross_val_scores(x, y, hyperparameters, clf):
     '''
     Cross validation using a Logistic Regression classifier (5 folds)

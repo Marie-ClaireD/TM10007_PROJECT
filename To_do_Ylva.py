@@ -186,13 +186,19 @@ def cross_val_scores(x, y, hyperparameters, clf):
     return performance_scores
 
 
-performance_clf = {}
+performance_clf = []
 clsfs = [LogisticRegression(), KNeighborsClassifier(n_neighbors=hyperparameters[0].get('n_neighbors')), RandomForestClassifier(bootstrap=True, max_depth=hyperparameters[1].get('max_depth'), max_features=hyperparameters[1].get('max_features'), min_samples_leaf=hyperparameters[1].get('min_samples_leaf'), n_estimators=hyperparameters[1].get('n_estimators'), random_state=None), SVC(C=hyperparameters[2].get("C"), gamma=hyperparameters[2].get("gamma"), kernel=hyperparameters[2].get("kernel"), probability=True)]
+clsfs_names =['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
 
-
-for clf in clsfs: 
+for clf in clsfs:
     performances = cross_val_scores(x_train, y_train, hyperparameters, clf) 
-    performance_clf[clf] = performances
-print(performance_clf)
+    performance_clf.append(performances)
+
+for item in performance_clf: 
+    plt.figure()
+    item.boxplot()
+    plt.show()
+
+
 
 

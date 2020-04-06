@@ -203,11 +203,15 @@ data3 = pd.DataFrame(performance_clf[2], columns=['Accuracy', 'AUC', 'Sensitivit
 data4 = pd.DataFrame(performance_clf[3], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=4)
 
 cdf = pd.concat([data1, data2, data3, data4])
-mdf = pd.melt(cdf, id_vars=['Location'], var_name=['Letter'])
+mdf = pd.melt(cdf, id_vars=['Location'], var_name=['Index'])
 
 
-ax = sns.boxplot(x="Location", y="value", hue="Letter", data=mdf)    
+ax = sns.boxplot(x="Location", y="value", hue="Index", data=mdf)    
+plt.xticks([0, 1, 2, 3], ['Logistic Regression', 'kNN', 'Random Forest', 'SVM'])
+ax.set_xlabel('Classifier')
+ax.set_ylabel('Performance')
 plt.show()
+
 
 
 

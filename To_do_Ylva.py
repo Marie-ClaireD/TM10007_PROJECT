@@ -21,7 +21,7 @@ from sklearn.model_selection import RandomizedSearchCV
 from scipy.stats import randint
 from hn.load_data import load_data
 from pprint import pprint
-
+import seaborn as sns
 from hn.load_data import load_data
 
 #%%
@@ -197,11 +197,19 @@ for clf in clsfs:
     performances = cross_val_scores(x_train, y_train, hyperparameters, clf) 
     performance_clf.append(performances)
 
-for item in performance_clf: 
-    plt.figure()
-    item.boxplot()
-    plt.show()
+data1 = pd.DataFrame(performance_clf[0], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=1)
+data2 = pd.DataFrame(performance_clf[1], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=2)
+data3 = pd.DataFrame(performance_clf[2], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=3)
+data4 = pd.DataFrame(performance_clf[3], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=4)
+
+cdf = pd.concat([data1, data2, data3, data4])
+mdf = pd.melt(cdf, id_vars=['Location'], var_name=['Letter'])
+print(mdf.head())
+
+ax = sns.boxplot(x="Location", y="value", hue="Letter", data=mdf)    
+plt.show()
 
 
 
 
+# %%

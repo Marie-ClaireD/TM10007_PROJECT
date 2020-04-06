@@ -19,7 +19,7 @@ from sklearn.model_selection import ShuffleSplit
 from sklearn.feature_selection import mutual_info_classif
 from sklearn.feature_selection import SelectFromModel
 from sklearn.linear_model import LogisticRegression
-from sklearn.linear_model import Lasso, LogisticRegression
+from sklearn.linear_model import Lasso, LogisticRegression, LassoCV
 from sklearn.decomposition import PCA
 from sklearn.metrics import auc, roc_curve, accuracy_score, confusion_matrix
 from sklearn.naive_bayes import GaussianNB
@@ -90,22 +90,24 @@ print('selected features: {}'.format(len(selected_feat)))
 print('features with coefficients shrank to zero: {}'.format(
       np.sum(sel_.estimator_.coef_ == 0)))
 
-# %% Perform L1 regularization using Lasso 
-feat_selec = SelectFromModel(estimator=Lasso(alpha=10**(-10), random_state=42), threshold='median')
+# %% Perform L1 regularization using Linear regression (Lasso)
+feat_selec = SelectFromModel(estimator=Lasso(alpha=10**(-3), random_state=None), threshold='median')
 feat_selec.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
 feat_selec.get_support()
 
 selected_feat = data.columns[(feat_selec.get_support())]
 print('total features: {}'.format((x_train.shape[1])))
-print('selected features: {}'.format(len(selected_feat)))
+print('selected features with Lasso: {}'.format(len(selected_feat)))
 print('features with coefficients shrank to zero: {}'.format(
       np.sum(feat_selec.estimator_.coef_ == 0)))
-
+print(feat_selec.estimator_.coef_)
 # %% Getting a list of removed features
 removed_feats = data.columns[(sel_.estimator_.coef_ == 0).ravel().tolist()]
-removed_feats
+print(removed_feats)
 
-# %% Apply selected features
+# % %Remove features from training and test set
 x_train_selected = sel_.transform(pd.DataFrame(x_train).fillna(0))
 x_test_selected = sel_.transform(pd.DataFrame(x_test).fillna(0))
+
+print(x_train_selected.shape, x_test_selected.shape)
 

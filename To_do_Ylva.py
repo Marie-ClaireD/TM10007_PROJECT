@@ -58,7 +58,6 @@ data = load_check_data()
 """ Extract feature values and labels """
 # Features
 features = data.loc[:, data.columns != 'label'].values
-features = StandardScaler().fit_transform(features)
 
 # Labels
 labels = data.loc[:, ['label']].values
@@ -113,7 +112,7 @@ def cross_val_scores(x, y, hyperparameters, clf):
     '''
     Cross validation using a Logistic Regression classifier (5 folds)
     '''
-
+    
     crss_val = RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)
     crss_val.get_n_splits(x, y)
 
@@ -134,6 +133,8 @@ def cross_val_scores(x, y, hyperparameters, clf):
             sys.exit()
 
         else:
+            x_train = StandardScaler().fit_transform(x_train)
+            x_val = StandardScaler().transform(x_val)
             pca = PCA(n_components=70)
             pca.fit(x_train)
             x_train = pca.transform(x_train)

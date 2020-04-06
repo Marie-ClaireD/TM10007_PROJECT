@@ -142,6 +142,41 @@ def split_sets2(x,y):
     return x_train, x_val, y_train, y_val
 
 x_train, x_val, y_train, y_val = split_sets2(x_train, y_train)
+
+
+# hyperparameters random forest
+param_dist = {"n_estimators": randint(1, 200),
+                    "max_features": randint(5, 30),
+                    "max_depth": randint(2, 18),
+                    "min_samples_leaf": randint(1, 17)}
+clf = RandomForestClassifier(bootstrap=True, random_state=None)
+random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=20, cv=5, n_jobs=-1) #Hier nog een keer CV?
+model = random_search.fit(x_train, y_train)
+hp_rf = model.best_estimator_.get_params()
+pprint(hp_rf)
+
+#hyperparameters svm
+param_dist = {"C": randint(0.1, 100),
+                  "gamma": ['auto','scale'],
+                  "kernel": ['rbf','poly','sigmoid','linear']}
+clf = SVC(probability=True) 
+random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=20, cv=5, n_jobs=-1) #Hier nog een keer CV?
+model = random_search.fit(x_train, y_train)
+hp_svm = model.best_estimator_.get_params()
+pprint(hp_svm)
+
+# hyperparameters logistic regression
+param_dist = {"penalty": ['l1', 'l2', 'elasticnet', 'none'],
+                  "max_iter": randint(1, 200)}
+clf = LogisticRegression() 
+random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=20, cv=5, n_jobs=-1) #Hier nog een keer CV?
+model = random_search.fit(x_train, y_train)
+hp_lg = model.best_estimator_.get_params()
+pprint(hp_lg)
+X = features
+pca = PCA(n_components=30)
+X = pca.fit_transform(X)
+y = labels
 #%%
 def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
                         n_jobs=None, train_sizes=np.linspace(0.1,1,5)):
@@ -198,6 +233,7 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
         fraction of the maximum size of the training set (that is determined
         by the selected validation method), i.e. it has to be within (0, 1].
         Otherwise it is interpreted as absolute sizes of the training sets.
+
         Note that for classification the number of samples usually have to
         be big enough to contain at least one sample from each class.
         (default: np.linspace(0.1, 1.0, 5))
@@ -258,37 +294,6 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
 
 
 fig, axes = plt.subplots(3, 6, figsize=(10, 15))
-#%%
-def get_hyperparameters(x, y):
-    """ 
-    Random Search for Hyperparameters classifiers
-    """
-    
-    clsfs = [KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
-    param_distributions = [{"n_neighbors": randint(1, 20)}, {"n_estimators": randint(1, 200),
-                "max_features": randint(5, 30),
-                "max_depth": randint(2, 18),
-                "min_samples_leaf": randint(1, 17)},{"C": randint(0.1, 100),
-                 "gamma": ['auto','scale'],
-                 "kernel": ['rbf','poly','sigmoid','linear']}]
-
-    hyperparameters_clsfs = []
-    for clf, param_dist in zip(clsfs, param_distributions):
-        random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, n_jobs=-1) #Hier nog een keer CV?
-        model = random_search.fit(x, y)
-        parameters = model.best_estimator_.get_params()
-        pprint(parameters)
-        hyperparameters_clsfs.append(parameters)
-
-    return hyperparameters_clsfs
-
-
-hyperparameters = get_hyperparameters(x_train, y_train)
-X = features
-pca = PCA(n_components=70)
-X = pca.fit_transform(X)
-y = labels
-#%%
 title = "Learning Curves (Naive Bayes)"
 
 # Gaussian Naive Bayes
@@ -300,243 +305,46 @@ title = "Learning Curves (Naive Bayes)"
 
 #title = r"Learning Curves (SVM, RBF kernel, $\gamma=0.001$)"
 # SVM
-cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=0)
+cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)
 estimator = SVC()
 plot_learning_curve(estimator, title, X, y, axes=axes[:, 0], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 
 # SVM with hyperparameters
-cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=0)
-estimator = SVC(C=hyperparameters.get("C"), gamma=hyperparameters.get("gamma"), kernel=hyperparameters.get("kernel"), probability=True)
+cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)
+estimator = SVC(C=hp_svm.get("C"), gamma=hp_svm.get("gamma"), kernel=hp_svm.get("kernel"), probability=True)
 plot_learning_curve(estimator, title, X, y, axes=axes[:, 1], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 
 from sklearn.ensemble import RandomForestClassifier
 # Random Forest 
 title = "Learning Curves (Random Forest)"
-cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=1)
+cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)
 estimator = RandomForestClassifier()
 plot_learning_curve(estimator, title, X, y, axes=axes[:, 2], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 
 # Random Forest with hyperparameters
 title = "Learning Curves (Random Forest)"
-cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=1)
-estimator = RandomForestClassifier(bootstrap=True, max_depth=hyperparameters.get('max_depth'), max_features=hyperparameters.get('max_features'), min_samples_leaf=hyperparameters.get('min_samples_leaf'), n_estimators=hyperparameters.get('n_estimators'), random_state=None)
+cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)
+estimator = RandomForestClassifier(bootstrap=True, max_depth=hp_rf.get('max_depth'), max_features=hp_rf.get('max_features'), min_samples_leaf=hp_rf.get('min_samples_leaf'), n_estimators=hp_rf.get('n_estimators'), random_state=None)
 plot_learning_curve(estimator, title, X, y, axes=axes[:, 3], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
+
 from sklearn.linear_model import LogisticRegression
 
 # Logistic regression 
 title = "Learning Curves (Logistic Regression)"
-cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=0)
+cv = RepeatedKFold(n_splits=2, n_repeats=10, random_state=None)
 estimator = LogisticRegression()
 plot_learning_curve(estimator, title, X, y, axes=axes[:, 4], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 
 # Logistic regression with hyperparameters
 title = "Learning Curves (Logistic Regression)"
-cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=0)
-estimator = LogisticRegression()
+cv = RepeatedKFold(n_splits=2, n_repeats=10, random_state=None)
+estimator = LogisticRegression(penalty=hp_lg.get('penalty'), max_iter=hp_lg.get('max_iter'))
 plot_learning_curve(estimator, title, X, y, axes=axes[:, 5], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 plt.show()
 
-# %%
-# learning curve
-
-plt.show()
-
-clf = LogisticRegression()
-cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
-plot_learning_curve(clf, title,x_train, y_train, ylim=(0.3, 1.01), cv=cv)
-
-
-# %%
-# L1 Regularization
-
-from sklearn.linear_model import Lasso
-Xs = features
-y = labels
-lasso = Lasso()
-parameters = {'alpha': [1e-15, 1e-10, 1e-8, 1e-4, 1e-3, 1e-2, 1, 5, 10, 20]}
-lasso_regressor = GridSearchCV(lasso, parameters, scoring='neg_mean_squared_error', cv=5)
-lasso_regressor.fit(Xs, y)
-print(lasso_regressor.best_params_)
-print(lasso_regressor.best_score_)
-
-# %%
-from sklearn.metrics import mean_squared_error, r2_score
-model_lasso = Lasso(alpha=1)
-model_lasso.fit(x_train, y_train)
-pred_train_lasso = model_lasso.predict(x_train)
-print(np.sqrt(mean_squared_error(y_train, pred_train_lasso)))
-print(r2_score(y_train, pred_train_lasso))
-
-# %%
-
-# %%
- # L1 regularization
-
- import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from sklearn.datasets import load_boston
-from sklearn.linear_model import Ridge, RidgeCV
-from sklearn.linear_model import Lasso, LassoCV
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-
-def split_sets(x, y):
-    '''
-    Splits the features and labels into a training set (80%) and test set (20%)
-    '''
-    x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=None)
-    return x_train, x_test, y_train, y_test
-    
-
-x_train, x_test, y_train, y_test = split_sets(features, labels)
-
-def split_sets2(x,y):
-    '''
-    '''
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=None)
-    x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.25, random_state=None) 
-    return x_train, x_val, y_train, y_val
-
-x_train, x_val, y_train, y_val = split_sets2(x_train, y_train)
-std = StandardScaler()
-X_train_std = std.fit_transform(x_train)
-X_test_std = std.fit_transform(x_test)
-X_val_std = std.fit_transform(x_val)
-
-
-# stores the weights of each feature
-# does the same thing above except for lasso
-alphas = [0.0001, 0.001, 0.01, 0.1, 1, 2]
-print('different alpha values:', alphas)
-
-lasso_weight = []
-for alpha in alphas:    
-    lasso = Lasso(alpha = alpha, fit_intercept = True)
-    lasso.fit(X_train_std, y_train)
-    lasso_weight.append(lasso.coef_)
-
-
-# %%
-def weight_versus_alpha_plot(weight, alphas, features):
-    """
-    Pass in the estimated weight, the alpha value and the names
-    for the features and plot the model's estimated coefficient weight 
-    for different alpha values
-    """
-    fig = plt.figure(figsize = (8, 6))
-    
-    # ensure that the weight is an array
-    weight = np.array(weight)
-    for col in range(0,112, 1):
-        plt.plot(alphas, weight[:, col], label = features[col])
-        
-    plt.axhline(0, color = 'black', linestyle = '--', linewidth = 3)
-    
-    # manually specify the coordinate of the legend
-    plt.title('Coefficient Weight as Alpha Grows')
-    plt.ylabel('Coefficient weight')
-    plt.xlabel('alpha')
-    
-    return fig
-# change default figure and font size
-plt.rcParams['figure.figsize'] = 8, 6 
-plt.rcParams['font.size'] = 12
-
-
-lasso_fig = weight_versus_alpha_plot(lasso_weight, alphas, features)
-# %%
-
-# difference of lasso and ridge regression is that some of the coefficients can be zero i.e. some of the features are 
-# completely neglected
-from sklearn.linear_model import Lasso
-from sklearn.linear_model import LinearRegression
-
-
-
-#print cancer_df.head(3)
-X = features
-Y = labels
-
-lasso = Lasso()
-lasso.fit(x_train,y_train)
-train_score=lasso.score(x_train,y_train)
-test_score=lasso.score(x_val, y_val)
-coeff_used = np.sum(lasso.coef_!=0)
-print("training score:", train_score)
-print("test score: ", test_score)
-print("number of features used: ", coeff_used)
-lasso001 = Lasso(alpha=0.01, max_iter=10e5)
-lasso001.fit(x_train,y_train)
-train_score001=lasso001.score(x_train,y_train)
-test_score001=lasso001.score(x_val, y_val)
-coeff_used001 = np.sum(lasso001.coef_!=0)
-print("training score for alpha=0.01:", train_score001) 
-print("test score for alpha =0.01: ", test_score001)
-print("number of features used: for alpha =0.01:", coeff_used001)
-lasso00001 = Lasso(alpha=0.0001, max_iter=10e5)
-lasso00001.fit(x_train,y_train)
-train_score00001=lasso00001.score(x_train,y_train)
-test_score00001=lasso00001.score(x_val, y_val)
-coeff_used00001 = np.sum(lasso00001.coef_!=0)
-print("training score for alpha=0.0001:", train_score00001)
-print("test score for alpha =0.0001: ", test_score00001)
-print("number of features used: for alpha =0.0001:", coeff_used00001)
-lr = LinearRegression()
-lr.fit(x_train,y_train)
-lr_train_score=lr.score(x_train,y_train)
-lr_test_score=lr.score(x_val, y_val)
-print("LR training score:", lr_train_score) 
-print("LR test score: ", lr_test_score)
-plt.subplot(1,2,1)
-plt.plot(lasso.coef_,alpha=0.7,linestyle='none',marker='*',markersize=5,color='red',label=r'Lasso; $\alpha = 1$',zorder=7) # alpha here is for transparency
-plt.plot(lasso001.coef_,alpha=0.5,linestyle='none',marker='d',markersize=6,color='blue',label=r'Lasso; $\alpha = 0.01$') # alpha here is for transparency
-
-plt.xlabel('Coefficient Index',fontsize=16)
-plt.ylabel('Coefficient Magnitude',fontsize=16)
-plt.legend(fontsize=13,loc=4)
-plt.subplot(1,2,2)
-plt.plot(lasso.coef_,alpha=0.7,linestyle='none',marker='*',markersize=5,color='red',label=r'Lasso; $\alpha = 1$',zorder=7) # alpha here is for transparency
-plt.plot(lasso001.coef_,alpha=0.5,linestyle='none',marker='d',markersize=6,color='blue',label=r'Lasso; $\alpha = 0.01$') # alpha here is for transparency
-plt.plot(lasso00001.coef_,alpha=0.8,linestyle='none',marker='v',markersize=6,color='black',label=r'Lasso; $\alpha = 0.00001$') # alpha here is for transparency
-plt.plot(lr.coef_,alpha=0.7,linestyle='none',marker='o',markersize=5,color='green',label='Linear Regression',zorder=2)
-plt.xlabel('Coefficient Index',fontsize=16)
-plt.ylabel('Coefficient Magnitude',fontsize=16)
-plt.legend(fontsize=13,loc=4)
-plt.tight_layout()
-plt.show()
-
-
-# %%
-def split_sets(x, y):
-    '''
-    Splits the features and labels into a training set (80%) and test set (20%)
-    '''
-    x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=None)
-    return x_train, x_test, y_train, y_test
-    
-
-x_train, x_test, y_train, y_test = split_sets(features, labels)
-
-def split_sets2(x,y):
-    '''
-    '''
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=None)
-    x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.25, random_state=None) 
-    return x_train, x_val, y_train, y_val
-
-x_train, x_val, y_train, y_val = split_sets2(x_train, y_train)
-reg = Lasso(alpha=1)
-reg.fit(x_train, y_train)
-
-print('Lasso Regression: R^2 score on training set', reg.score(x_train, y_train)*100)
-print('Lasso Regression: R^2 score on test set', reg.score(x_val, y_val)*100)
-
-# %%

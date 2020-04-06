@@ -86,8 +86,6 @@ print('selected features: {}'.format(len(selected_feat)))
 print('features with coefficients shrank to zero: {}'.format(
       np.sum(sel_.estimator_.coef_ == 0)))
 
-
-
 removed_feats = data.columns[(sel_.estimator_.coef_ == 0).ravel().tolist()]
 removed_feats
 
@@ -96,4 +94,11 @@ x_train_selected = sel_.transform(pd.DataFrame(x_train).fillna(0))
 
 x_test_selected = sel_.transform(pd.DataFrame(x_test).fillna(0))
 
-
+# Lasso
+feat_selec = SelectFromModel(estimator=Lasso(alpha=10**(-10), random_state=42), threshold='median')
+feat_selec.fit(X_train, y_train)
+n_original = X_train.shape[1]
+X_train = feat_selec.transform(X_train)
+X_test = feat_selec.transform(X_test)
+n_selected = X_train.shape[1]
+print(f"Selected {n_selected} from {n_original} features.")

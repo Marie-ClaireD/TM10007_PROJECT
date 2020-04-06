@@ -75,6 +75,10 @@ def split_sets(x, y):
     Splits the features and labels into a training set (80%) and test set (20%)
     '''
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=None)
+    scaler = StandardScaler()
+    x_train = scaler.fit_transform(x_train)
+    x_test = scaler.transform(x_test)
+    
     return x_train, x_test, y_train, y_test
   
 
@@ -133,8 +137,6 @@ def cross_val_scores(x, y, hyperparameters, clf):
             sys.exit()
 
         else:
-            x_train = StandardScaler().fit_transform(x_train)
-            x_val = StandardScaler().transform(x_val)
             pca = PCA(n_components=70)
             pca.fit(x_train)
             x_train = pca.transform(x_train)

@@ -91,7 +91,7 @@ print('features with coefficients shrank to zero: {}'.format(
       np.sum(sel_.estimator_.coef_ == 0)))
 
 # %% Perform L1 regularization using Linear regression (Lasso)
-feat_selec = SelectFromModel(estimator=Lasso(alpha=10**(-10), random_state=42), threshold='median')
+feat_selec = SelectFromModel(estimator=Lasso(alpha=10**(-3), random_state=None), threshold='median')
 feat_selec.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
 feat_selec.get_support()
 
@@ -100,7 +100,7 @@ print('total features: {}'.format((x_train.shape[1])))
 print('selected features with Lasso: {}'.format(len(selected_feat)))
 print('features with coefficients shrank to zero: {}'.format(
       np.sum(feat_selec.estimator_.coef_ == 0)))
-
+print(feat_selec.estimator_.coef_)
 # %% Getting a list of removed features
 removed_feats = data.columns[(sel_.estimator_.coef_ == 0).ravel().tolist()]
 print(removed_feats)

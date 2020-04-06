@@ -167,15 +167,14 @@ pprint(hp_svm)
 
 # hyperparameters logistic regression
 param_dist = {"penalty": ['l1', 'l2', 'elasticnet', 'none'],
-                  "dual": ['False','True'],
                   "max_iter": randint(1, 200)}
-clf = SVC(probability=True) 
+clf = LogisticRegression() 
 random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=20, cv=5, n_jobs=-1) #Hier nog een keer CV?
 model = random_search.fit(x_train, y_train)
 hp_lg = model.best_estimator_.get_params()
 pprint(hp_lg)
 X = features
-pca = PCA(n_components=70)
+pca = PCA(n_components=30)
 X = pca.fit_transform(X)
 y = labels
 #%%
@@ -306,47 +305,48 @@ title = "Learning Curves (Naive Bayes)"
 
 #title = r"Learning Curves (SVM, RBF kernel, $\gamma=0.001$)"
 # SVM
-cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=0)
+cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)
 estimator = SVC()
 plot_learning_curve(estimator, title, X, y, axes=axes[:, 0], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 
 # SVM with hyperparameters
-cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=0)
-estimator = SVC(C=hyperparameters.get("C"), gamma=hyperparameters.get("gamma"), kernel=hyperparameters.get("kernel"), probability=True)
+cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)
+estimator = SVC(C=hp_svm.get("C"), gamma=hp_svm.get("gamma"), kernel=hp_svm.get("kernel"), probability=True)
 plot_learning_curve(estimator, title, X, y, axes=axes[:, 1], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 
 from sklearn.ensemble import RandomForestClassifier
 # Random Forest 
-#title = "Learning Curves (Random Forest)"
-#cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=1)
-#estimator = RandomForestClassifier()
-#plot_learning_curve(estimator, title, X, y, axes=axes[:, 2], ylim=(0, 1.5),
-#                    cv=cv, n_jobs=4)
+title = "Learning Curves (Random Forest)"
+cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)
+estimator = RandomForestClassifier()
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 2], ylim=(0, 1.5),
+                    cv=cv, n_jobs=4)
 
 # Random Forest with hyperparameters
-#title = "Learning Curves (Random Forest)"
-#cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=1)
-#estimator = RandomForestClassifier(bootstrap=True, max_depth=hyperparameters('max_depth'), max_features=hyperparameters('max_features'), min_samples_leaf=hyperparameters('min_samples_leaf'), n_estimators=hyperparameters('n_estimators'), random_state=None)
-#plot_learning_curve(estimator, title, X, y, axes=axes[:, 3], ylim=(0, 1.5),
-#                    cv=cv, n_jobs=4)
-#from sklearn.linear_model import LogisticRegression
+title = "Learning Curves (Random Forest)"
+cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)
+estimator = RandomForestClassifier(bootstrap=True, max_depth=hp_rf.get('max_depth'), max_features=hp_rf.get('max_features'), min_samples_leaf=hp_rf.get('min_samples_leaf'), n_estimators=hp_rf.get('n_estimators'), random_state=None)
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 3], ylim=(0, 1.5),
+                    cv=cv, n_jobs=4)
+
+from sklearn.linear_model import LogisticRegression
 
 # Logistic regression 
-#title = "Learning Curves (Logistic Regression)"
-#cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=0)
-#estimator = LogisticRegression()
-#plot_learning_curve(estimator, title, X, y, axes=axes[:, 4], ylim=(0, 1.5),
-#                    cv=cv, n_jobs=4)
+title = "Learning Curves (Logistic Regression)"
+cv = RepeatedKFold(n_splits=2, n_repeats=10, random_state=None)
+estimator = LogisticRegression()
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 4], ylim=(0, 1.5),
+                    cv=cv, n_jobs=4)
 
 # Logistic regression with hyperparameters
-#title = "Learning Curves (Logistic Regression)"
-#cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=0)
-#estimator = LogisticRegression()
-#plot_learning_curve(estimator, title, X, y, axes=axes[:, 5], ylim=(0, 1.5),
-#                    cv=cv, n_jobs=4)
-#plt.show()
+title = "Learning Curves (Logistic Regression)"
+cv = RepeatedKFold(n_splits=2, n_repeats=10, random_state=None)
+estimator = LogisticRegression(penalty=hp_lg.get('penalty'), max_iter=hp_lg.get('max_iter'))
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 5], ylim=(0, 1.5),
+                    cv=cv, n_jobs=4)
+plt.show()
 
 # %%
 # learning curve

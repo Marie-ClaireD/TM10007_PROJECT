@@ -116,12 +116,27 @@ print('features with coefficients shrank to zero: {}'.format(
 print(feat_selec.estimator_.coef_)
 
 # %% Getting a list of removed features
-removed_feats = data.columns[(sel_.estimator_.coef_ == 0).ravel().tolist()]
-print(removed_feats)
+removed_feats = data.columns[(feat_selec.estimator_.coef_ == 0).ravel().tolist()]
+#print(removed_feats)
 
 #% %Remove features from training and test set
-x_train_selected = sel_.transform(pd.DataFrame(x_train).fillna(0))
-x_test_selected = sel_.transform(pd.DataFrame(x_test).fillna(0))
+x_train_selected = feat_selec.transform(pd.DataFrame(x_train).fillna(0))
+x_test_selected = feat_selec.transform(pd.DataFrame(x_test).fillna(0))
 
-print(x_train_selected.shape, x_test_selected.shape)
+#print(x_train_selected.shape, x_test_selected.shape)
 
+# %% Univariate feature selection
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import f_classif
+
+# feature extraction
+univariate = SelectKBest(score_func=f_classif, k=4)
+univariate.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
+univariate.get_support()
+selected_feat = data.columns[(univariate.get_support())]
+print('total features: {}'.format((x_train.shape[1])))
+print('selected features with Univariate testing: {}'.format(len(selected_feat)))
+
+#% %Remove features from training and test set
+x_train_selected = univariate.transform(pd.DataFrame(x_train).fillna(0))
+print(x_train_selected.shape)

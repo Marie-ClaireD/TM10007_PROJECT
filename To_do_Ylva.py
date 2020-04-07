@@ -91,16 +91,16 @@ def get_hyperparameters(x, y):
     """
     
     clsfs = [KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
-    param_distributions = [{"n_neighbors": randint(1, 20)}, {"n_estimators": randint(1, 200),
-                "max_features": randint(5, 30),
-                "max_depth": randint(2, 18),
-                "min_samples_leaf": randint(1, 17)},{"C": randint(0.1, 100),
-                 "gamma": ['auto','scale'],
-                 "kernel": ['rbf','poly','sigmoid','linear']}]
+    param_distributions = [{"leaf_size": randint(1,50), "n_neighbors": randint(1, 20), "p": [1,2]}, {"n_estimators": randint(1, 500),
+                "max_features": randint(1, 30),
+                "max_depth": randint(1, 20),
+                "min_samples_leaf": randint(1, 20)}, {"C": randint(0.1, 100),
+                "gamma": ['auto', 'scale'],
+                "kernel": ['rbf', 'poly', 'sigmoid', 'linear']}]
 
     hyperparameters_clsfs = []
     for clf, param_dist in zip(clsfs, param_distributions):
-        random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, n_jobs=-1) #Hier nog een keer CV?
+        random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=20, cv=5, n_jobs=-1)
         model = random_search.fit(x, y)
         parameters = model.best_estimator_.get_params()
         pprint(parameters)
@@ -108,10 +108,8 @@ def get_hyperparameters(x, y):
 
     return hyperparameters_clsfs
 
-
 hyperparameters = get_hyperparameters(x_train, y_train)
 
-#%%
 def cross_val_scores(x, y, hyperparameters, clf):
     '''
     Cross validation using a Logistic Regression classifier (5 folds)
@@ -188,14 +186,23 @@ def cross_val_scores(x, y, hyperparameters, clf):
 
     return performance_scores
 
+#%%
 
 performance_clf = []
-clsfs = [LogisticRegression(), KNeighborsClassifier(n_neighbors=hyperparameters[0].get('n_neighbors')), RandomForestClassifier(bootstrap=True, max_depth=hyperparameters[1].get('max_depth'), max_features=hyperparameters[1].get('max_features'), min_samples_leaf=hyperparameters[1].get('min_samples_leaf'), n_estimators=hyperparameters[1].get('n_estimators'), random_state=None), SVC(C=hyperparameters[2].get("C"), gamma=hyperparameters[2].get("gamma"), kernel=hyperparameters[2].get("kernel"), probability=True)]
+clsfs = [LogisticRegression(), KNeighborsClassifier(leaf_size=hyperparameters[0].get('leaf_size'), n_neighbors=hyperparameters[0].get('n_neighbors'), p=hyperparameters[0].get('p')), RandomForestClassifier(bootstrap=True, max_depth=hyperparameters[1].get('max_depth'), max_features=hyperparameters[1].get('max_features'), min_samples_leaf=hyperparameters[1].get('min_samples_leaf'), n_estimators=hyperparameters[1].get('n_estimators'), random_state=None), SVC(C=hyperparameters[2].get("C"), gamma=hyperparameters[2].get("gamma"), kernel=hyperparameters[2].get("kernel"), probability=True)]
 clsfs_names =['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
 
+# performance_clf_int = []
+# clsfs_int = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+# clsfs__int_names =['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
+
 for clf in clsfs:
-    performances = cross_val_scores(x_train, y_train, hyperparameters, clf) 
+    performances = cross_val_scores(x_train, y_train, hyperparameters, clf)
     performance_clf.append(performances)
+
+# for clf_int in clsfs_int:
+#     performances_int = cross_val_scores(x_train, y_train, hyperparameters, clf) 
+#     performance_clf_int.append(performances_int)
 
 data1 = pd.DataFrame(performance_clf[0], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=1)
 data2 = pd.DataFrame(performance_clf[1], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=2)
@@ -205,15 +212,10 @@ data4 = pd.DataFrame(performance_clf[3], columns=['Accuracy', 'AUC', 'Sensitivit
 cdf = pd.concat([data1, data2, data3, data4])
 mdf = pd.melt(cdf, id_vars=['Location'], var_name=['Index'])
 
-
 ax = sns.boxplot(x="Location", y="value", hue="Index", data=mdf)    
 plt.xticks([0, 1, 2, 3], ['Logistic Regression', 'kNN', 'Random Forest', 'SVM'])
 ax.set_xlabel('Classifier')
 ax.set_ylabel('Performance')
 plt.show()
-
-
-
-
 
 # %%

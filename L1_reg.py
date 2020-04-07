@@ -80,18 +80,31 @@ scaler = StandardScaler()
 scaler.fit(pd.DataFrame(x_train).fillna(0))
 
 # %% Perform L1 regularization using Logistic regression and L1 penalty
-sel_ = SelectFromModel(LogisticRegression(solver='saga', C=1, penalty='l1'))
-sel_.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
-sel_.get_support()
+# sel_ = SelectFromModel(LogisticRegression(solver='saga', C=1, penalty='l1'))
+# sel_.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
+# sel_.get_support()
 
-selected_feat = data.columns[(sel_.get_support())]
-print('total features: {}'.format((x_train.shape[1])))
-print('selected features: {}'.format(len(selected_feat)))
-print('features with coefficients shrank to zero: {}'.format(
-      np.sum(sel_.estimator_.coef_ == 0)))
+# selected_feat = data.columns[(sel_.get_support())]
+# print('total features: {}'.format((x_train.shape[1])))
+# print('selected features: {}'.format(len(selected_feat)))
+# print('features with coefficients shrank to zero: {}'.format(
+#      np.sum(sel_.estimator_.coef_ == 0)))
 
 # %% Perform L1 regularization using Linear regression (Lasso)
-feat_selec = SelectFromModel(estimator=Lasso(alpha=10**(-3), random_state=None), threshold='median')
+# Finding best value for alpha parameter
+ALFA = [0.000000001,0.00000001,0.0000001,0.000001,0.00001,0.0001,0.001,0.01,0.1,1]
+for a in ALFA:
+    lasso = Lasso(alpha=a, random_state=None, max_iter=10000)
+    lasso.fit(x_train,y_train)
+    train_score=lasso.score(x_train,y_train)
+    coeff_used = np.sum(lasso.coef_!=0) # Number of coefficents with non zero weight
+ 
+    print('For alpha =',a)
+    print ('training score:',train_score )
+    print('number of features used:',coeff_used)
+
+# USING ALPHA = 0.001
+feat_selec = SelectFromModel(estimator=Lasso(alpha=0.001, random_state=None, max_iter=10000), threshold='median')
 feat_selec.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
 feat_selec.get_support()
 
@@ -99,13 +112,14 @@ selected_feat = data.columns[(feat_selec.get_support())]
 print('total features: {}'.format((x_train.shape[1])))
 print('selected features with Lasso: {}'.format(len(selected_feat)))
 print('features with coefficients shrank to zero: {}'.format(
-      np.sum(feat_selec.estimator_.coef_ == 0)))
+     np.sum(feat_selec.estimator_.coef_ == 0)))
 print(feat_selec.estimator_.coef_)
+
 # %% Getting a list of removed features
 removed_feats = data.columns[(sel_.estimator_.coef_ == 0).ravel().tolist()]
 print(removed_feats)
 
-# % %Remove features from training and test set
+#% %Remove features from training and test set
 x_train_selected = sel_.transform(pd.DataFrame(x_train).fillna(0))
 x_test_selected = sel_.transform(pd.DataFrame(x_test).fillna(0))
 

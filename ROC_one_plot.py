@@ -1,4 +1,4 @@
-# %%
+#%%
 import pandas as pd
 import numpy as np
 import statistics
@@ -173,18 +173,7 @@ def cross_val_scores(x, y, hyperparameters, clf):
 
     tprs_upper = np.minimum(mean_tprs + std, 1)
     tprs_lower = mean_tprs - std
-    plt.figure(figsize=(12, 8))
-    plt.plot(base_fpr, mean_tprs, 'c', alpha=0.8, label=r'Mean ROC (AUC = %0.2f $\pm$ %0.2f)' % (mean_auc, std_auc),)
-    plt.fill_between(base_fpr, tprs_lower, tprs_upper, color='c', alpha=0.2)
-    plt.plot([0, 1], [0, 1], linestyle='--', lw=2, color='k', label='Chance level', alpha=0.8)
-    plt.xlim([-0.01, 1.01])
-    plt.ylim([-0.01, 1.01])
-    plt.ylabel('True Positive Rate')
-    plt.xlabel('False Positive Rate')
-    plt.legend(loc="lower right")
-    plt.title(f'Receiver operating characteristic (ROC) curve {clf}')
-    plt.grid()
-    plt.show()
+
 
     return performance_scores
 
@@ -192,6 +181,43 @@ def cross_val_scores(x, y, hyperparameters, clf):
 performance_clf = []
 clsfs = [LogisticRegression(), KNeighborsClassifier(n_neighbors=hyperparameters[0].get('n_neighbors')), RandomForestClassifier(bootstrap=True, max_depth=hyperparameters[1].get('max_depth'), max_features=hyperparameters[1].get('max_features'), min_samples_leaf=hyperparameters[1].get('min_samples_leaf'), n_estimators=hyperparameters[1].get('n_estimators'), random_state=None), SVC(C=hyperparameters[2].get("C"), gamma=hyperparameters[2].get("gamma"), kernel=hyperparameters[2].get("kernel"), probability=True)]
 clsfs_names =['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
+result_table = pd.DataFrame(columns=['classifiers', 'fpr','tpr','auc'])
+
+# Train the models and record the results
+for cls in clsfs:
+    model = cls.fit(x_train, y_train)
+    yproba = model.predict_proba(x_val)[::,1]
+    
+    fpr, tpr, _ = roc_curve(y_val,  yproba)
+    auc = roc_auc_score(y_val, yproba)
+    
+    result_table = result_table.append({'classifiers':cls.__class__.__name__,
+                                        'fpr':fpr, 
+                                        'tpr':tpr, 
+                                        'auc':auc}, ignore_index=True)
+
+# Set name of the classifiers as index labels
+result_table.set_index('classifiers', inplace=True)
+fig = plt.figure(figsize=(8,6))
+
+for i in result_table.index:
+    plt.plot(result_table.loc[i]['fpr'], 
+             result_table.loc[i]['tpr'], 
+             label="{}, AUC={:.3f}".format(i, result_table.loc[i]['auc']))
+    
+plt.plot([0,1], [0,1], color='orange', linestyle='--')
+
+plt.xticks(np.arange(0.0, 1.1, step=0.1))
+plt.xlabel("Flase Positive Rate", fontsize=15)
+
+plt.yticks(np.arange(0.0, 1.1, step=0.1))
+plt.ylabel("True Positive Rate", fontsize=15)
+
+plt.title('ROC Curve Analysis', fontweight='bold', fontsize=15)
+plt.legend(prop={'size':13}, loc='lower right')
+
+plt.show()
+
 
 for clf in clsfs:
     performances = cross_val_scores(x_train, y_train, hyperparameters, clf) 
@@ -211,6 +237,9 @@ plt.xticks([0, 1, 2, 3], ['Logistic Regression', 'kNN', 'Random Forest', 'SVM'])
 ax.set_xlabel('Classifier')
 ax.set_ylabel('Performance')
 plt.show()
+
+
+
 
 
 

@@ -7,13 +7,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns 
 from scipy import interp
 from hn.load_data import load_data
+from scipy.stats import randint
+from pprint import pprint
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import LeaveOneOut 
-from sklearn.model_selection import RepeatedKFold
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
+from sklearn.model_selection import LeaveOneOut, RepeatedKFold, StratifiedKFold 
 from sklearn.model_selection import learning_curve
 from sklearn.model_selection import ShuffleSplit
 from sklearn.feature_selection import mutual_info_classif
@@ -21,9 +21,11 @@ from sklearn.feature_selection import SelectFromModel
 from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import Lasso, LogisticRegression, LassoCV
 from sklearn.decomposition import PCA
-from sklearn.metrics import auc, roc_curve, accuracy_score, confusion_matrix
+from sklearn.metrics import auc, roc_curve, accuracy_score, confusion_matrix, roc_auc_score
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 # %% Load and check data
 def load_check_data():
@@ -90,53 +92,53 @@ scaler.fit(pd.DataFrame(x_train).fillna(0))
 # print('features with coefficients shrank to zero: {}'.format(
 #      np.sum(sel_.estimator_.coef_ == 0)))
 
-# %% Perform L1 regularization using Linear regression (Lasso)
-# Finding best value for alpha parameter
-ALFA = [0.000000001,0.00000001,0.0000001,0.000001,0.00001,0.0001,0.001,0.01,0.1,1]
-for a in ALFA:
-    lasso = Lasso(alpha=a, random_state=None, max_iter=10000)
-    lasso.fit(x_train,y_train)
-    train_score=lasso.score(x_train,y_train)
-    coeff_used = np.sum(lasso.coef_!=0) # Number of coefficents with non zero weight
+
+# %% Finding best value for alpha parameter (Lasso)
+#alphas = [0.000000001,0.00000001,0.0000001,0.000001,0.00001,0.0001,0.001,0.01,0.1,1]
+#for a in alphas:
+#    lasso = Lasso(alpha=a, random_state=None, max_iter=10000)
+#    lasso.fit(x_train,y_train)
+#    train_score=lasso.score(x_train,y_train)
+#    coeff_used = np.sum(lasso.coef_!=0) # Number of coefficents with non zero weight
  
-    print('For alpha =',a)
-    print ('training score:',train_score )
-    print('number of features used:',coeff_used)
+#    print('For alpha =',a)
+#    print ('training score:',train_score )
+#    print('number of features used:',coeff_used)
 
-# USING ALPHA = 0.001
-feat_selec = SelectFromModel(estimator=Lasso(alpha=0.001, random_state=None, max_iter=10000), threshold='median')
-feat_selec.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
-feat_selec.get_support()
+# %% Perform L1 regularization using Linear regression (Lasso)
+lasso = SelectFromModel(estimator=Lasso(alpha=0.001, random_state=None, max_iter=10000), threshold='median')
+lasso.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
+lasso.get_support()
 
-selected_feat = data.columns[(feat_selec.get_support())]
+selected_feat = data.columns[(lasso.get_support())]
 print('total features: {}'.format((x_train.shape[1])))
 print('selected features with Lasso: {}'.format(len(selected_feat)))
 print('features with coefficients shrank to zero: {}'.format(
-     np.sum(feat_selec.estimator_.coef_ == 0)))
-print(feat_selec.estimator_.coef_)
+     np.sum(lasso.estimator_.coef_ == 0)))
+print('Feature coefficients:',lasso.estimator_.coef_)
 
-# %% Getting a list of removed features
-removed_feats = data.columns[(feat_selec.estimator_.coef_ == 0).ravel().tolist()]
-#print(removed_feats)
+# Getting a list of removed features
+removed_feats = data.columns[(lasso.estimator_.coef_ == 0).ravel().tolist()]
+print(removed_feats)
 
-#% %Remove features from training and test set
-x_train_selected = feat_selec.transform(pd.DataFrame(x_train).fillna(0))
-x_test_selected = feat_selec.transform(pd.DataFrame(x_test).fillna(0))
-
-#print(x_train_selected.shape, x_test_selected.shape)
+# Remove features from training and test set
+x_train_selected = lasso.transform(pd.DataFrame(x_train).fillna(0))
+x_test_selected = lasso.transform(pd.DataFrame(x_test).fillna(0))
+ 
+print(x_train_selected.shape, x_test_selected.shape)
 
 # %% Univariate feature selection
-from sklearn.feature_selection import SelectKBest
-from sklearn.feature_selection import f_classif
+#from sklearn.feature_selection import SelectKBest
+#from sklearn.feature_selection import f_classif
 
 # feature extraction
-univariate = SelectKBest(score_func=f_classif, k=4)
-univariate.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
-univariate.get_support()
-selected_feat = data.columns[(univariate.get_support())]
-print('total features: {}'.format((x_train.shape[1])))
-print('selected features with Univariate testing: {}'.format(len(selected_feat)))
+#univariate = SelectKBest(score_func=f_classif, k=15)
+#univariate.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
+#univariate.get_support()
+#selected_feat = data.columns[(univariate.get_support())]
+#print('total features: {}'.format((x_train.shape[1])))
+#print('selected features with Univariate testing: {}'.format(len(selected_feat)))
 
-#% %Remove features from training and test set
-x_train_selected = univariate.transform(pd.DataFrame(x_train).fillna(0))
-print(x_train_selected.shape)
+# %% Remove features from training and test set
+#x_train_selected = univariate.transform(pd.DataFrame(x_train).fillna(0))
+#print(x_train_selected.shape)

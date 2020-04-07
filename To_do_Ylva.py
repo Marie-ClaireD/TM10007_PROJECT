@@ -105,11 +105,21 @@ def get_hyperparameters(x, y):
         parameters = model.best_estimator_.get_params()
         pprint(parameters)
         hyperparameters_clsfs.append(parameters)
+        values = model.cv_results_
+        pprint(values)
+        # predictions = model.predict(x)
+        # errors = abs(predictions - y)
+        # mape = 100 * np.mean(errors / y)
+        # accuracy = 100 - mape
+        # print('Model Performance')
+        # print('Average Error: {:0.4f} degrees.'.format(np.mean(errors)))
+        # print('Accuracy = {:0.2f}%.'.format(accuracy))
 
     return hyperparameters_clsfs
 
 hyperparameters = get_hyperparameters(x_train, y_train)
 
+#%%
 def cross_val_scores(x, y, hyperparameters, clf):
     '''
     Cross validation using a Logistic Regression classifier (5 folds)
@@ -186,22 +196,20 @@ def cross_val_scores(x, y, hyperparameters, clf):
 
     return performance_scores
 
-#%%
-
 performance_clf = []
 clsfs = [LogisticRegression(), KNeighborsClassifier(leaf_size=hyperparameters[0].get('leaf_size'), n_neighbors=hyperparameters[0].get('n_neighbors'), p=hyperparameters[0].get('p')), RandomForestClassifier(bootstrap=True, max_depth=hyperparameters[1].get('max_depth'), max_features=hyperparameters[1].get('max_features'), min_samples_leaf=hyperparameters[1].get('min_samples_leaf'), n_estimators=hyperparameters[1].get('n_estimators'), random_state=None), SVC(C=hyperparameters[2].get("C"), gamma=hyperparameters[2].get("gamma"), kernel=hyperparameters[2].get("kernel"), probability=True)]
 clsfs_names =['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
 
-performance_clf_int = []
-clsfs_int = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
-clsfs__int_names =['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
+# performance_clf_int = []
+# clsfs_int = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+# clsfs__int_names =['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
 
-for clf in clsfs:
-    performances = cross_val_scores(x_train, y_train, hyperparameters, clf)
-    performance_clf.append(performances)
+# for clf in clsfs:
+#     performances = cross_val_scores(x_train, y_train, hyperparameters, clf)
+#     performance_clf.append(performances)
 
 for clf_int in clsfs_int:
-    performances_int = cross_val_scores(x_train, y_train, hyperparameters, clf) 
+    performances_int = cross_val_scores(x_train, y_train, hyperparameters, clf_int) 
     performance_clf_int.append(performances_int)
 
 data1 = pd.DataFrame(performance_clf[0], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=1)
@@ -218,7 +226,7 @@ ax.set_xlabel('Classifier')
 ax.set_ylabel('Performance')
 plt.show()
 
-#%% Evaluate hyperparameters
+#%% Evaluate hyperparameters, klopt niets van
 
 def evaluate(model, x, y):
     predictions = model.predict(x)

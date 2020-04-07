@@ -192,17 +192,17 @@ performance_clf = []
 clsfs = [LogisticRegression(), KNeighborsClassifier(leaf_size=hyperparameters[0].get('leaf_size'), n_neighbors=hyperparameters[0].get('n_neighbors'), p=hyperparameters[0].get('p')), RandomForestClassifier(bootstrap=True, max_depth=hyperparameters[1].get('max_depth'), max_features=hyperparameters[1].get('max_features'), min_samples_leaf=hyperparameters[1].get('min_samples_leaf'), n_estimators=hyperparameters[1].get('n_estimators'), random_state=None), SVC(C=hyperparameters[2].get("C"), gamma=hyperparameters[2].get("gamma"), kernel=hyperparameters[2].get("kernel"), probability=True)]
 clsfs_names =['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
 
-# performance_clf_int = []
-# clsfs_int = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
-# clsfs__int_names =['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
+performance_clf_int = []
+clsfs_int = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+clsfs__int_names =['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
 
 for clf in clsfs:
     performances = cross_val_scores(x_train, y_train, hyperparameters, clf)
     performance_clf.append(performances)
 
-# for clf_int in clsfs_int:
-#     performances_int = cross_val_scores(x_train, y_train, hyperparameters, clf) 
-#     performance_clf_int.append(performances_int)
+for clf_int in clsfs_int:
+    performances_int = cross_val_scores(x_train, y_train, hyperparameters, clf) 
+    performance_clf_int.append(performances_int)
 
 data1 = pd.DataFrame(performance_clf[0], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=1)
 data2 = pd.DataFrame(performance_clf[1], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=2)
@@ -217,5 +217,31 @@ plt.xticks([0, 1, 2, 3], ['Logistic Regression', 'kNN', 'Random Forest', 'SVM'])
 ax.set_xlabel('Classifier')
 ax.set_ylabel('Performance')
 plt.show()
+
+#%% Evaluate hyperparameters
+
+def evaluate(model, x, y):
+    predictions = model.predict(x)
+    errors = abs(predictions - y)
+    mape = 100 * np.mean(errors / y)
+    accuracy = 100 - mape
+    print('Model Performance')
+    print('Average Error: {:0.4f} degrees.'.format(np.mean(errors)))
+    print('Accuracy = {:0.2f}%.'.format(accuracy))
+    
+    return accuracy
+    
+base_model = RandomForestClassifier(bootstrap=True, random_state = 42)
+base_model.fit(x_train, y_train)
+base_accuracy = evaluate(base_model, x_train, y_train)
+
+best_random = RandomForestClassifier(bootstrap=True, max_depth=hyperparameters[1].get('max_depth'), max_features=hyperparameters[1].get('max_features'), min_samples_leaf=hyperparameters[1].get('min_samples_leaf'), n_estimators=hyperparameters[1].get('n_estimators'), random_state=None)
+best_random.fit(x_train, y_train)
+random_accuracy = evaluate(best_random, x_train, y_train)
+
+print('Improvement of {:0.2f}%.'.format( 100 * (random_accuracy - base_accuracy) / base_accuracy))
+
+# Op internet fitten ze op de training set en bepalen ze de acuracy op de test set. 
+# Moet dat bij ons dat train en val zijn?
 
 # %%

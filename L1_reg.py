@@ -93,28 +93,77 @@ scaler.transform(x_test)
 #      np.sum(sel_.estimator_.coef_ == 0)))
 
 # %% Finding best value for alpha parameter (Lasso)
-n_alphas = 100
-alphas = np.logspace(-10,0,n_alphas)
+n_alphas = 200
+alphas = np.logspace(-9,1,num=n_alphas)
 
+#####  Los berekenen van scores per alpha ###### 
+# Construct classifiers
+coefs = []
+accuracies = []
+training_scores = []
+test_scores = []
+
+for a in alphas:
+    # Fit classifier
+    clf = Lasso(alpha=a, max_iter=10000)
+    clf.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
+    training_score = (clf.score(x_train,y_train))
+    test_score = clf.score(x_test,y_test)
+    coeff_used = np.sum(clf.coef_ != 0) # Number of coefficents with non zero weight
+
+    training_scores.append(training_score)
+    test_scores.append(test_score)
+
+    # Zet dit uit als je het niet voor elke wil printen! 
+    #print('For alpha =',a)
+    #print('training score:',training_score)
+    #print('testing score:',test_score)
+    #print('number of features used:',coeff_used)
+
+#### Weights en accuracy's van verschillende alphas plotten
 # Construct classifiers
 coefs = []
 accuracies = []
 
 for a in alphas:
     # Fit classifier
-    clf = Lasso(alpha=a, max_iter=10000)
-    clf.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
-    train_score = clf.score(x_train,y_train)
-    test_score = clf.score(x_test,y_test)
-    coeff_used = np.sum(clf.coef_ != 0) # Number of coefficents with non zero weight
- 
-    print('For alpha =',a)
-    print('training score:',train_score)
-    print('testing score:',test_score)
-    print('number of features used:',coeff_used)
+    clf = Lasso(alpha=a, fit_intercept=False, max_iter = 10000)
+    clf.fit(x_train, y_train)
+    y_pred = clf.predict(x_test)
+    
+    # Append statistics
+    accuracy = float((y_test == y_pred).sum()) / float(y_test.shape[0])
+    accuracies.append(accuracy)
+    coefs.append(clf.coef_)
+
+# Display results
+
+# Weights
+plt.figure()
+ax = plt.gca()
+ax.plot(alphas, np.squeeze(coefs))
+ax.set_xscale('log')
+ax.set_xlim(ax.get_xlim()[::-1])  # reverse axis
+plt.xlabel('alpha')
+plt.ylabel('weights')
+plt.title('Lasso coefficients as a function of the regularization')
+plt.axis('tight')
+plt.show()
+
+# Performance
+plt.figure()
+ax = plt.gca()
+ax.plot(alphas, accuracies)
+ax.set_xscale('log')
+ax.set_xlim(ax.get_xlim()[::-1])  # reverse axis
+plt.xlabel('alpha')
+plt.ylabel('accuracies')
+plt.title('Performance as a function of the regularization')
+plt.axis('tight')
+plt.show()
     
 # %% Perform L1 regularization using Linear regression (Lasso)
-lasso = SelectFromModel(estimator=Lasso(alpha=0.0001, random_state=None, max_iter=10000), threshold='median')
+lasso = SelectFromModel(estimator=Lasso(alpha=0.0000001, random_state=None, max_iter=10000), threshold='median')
 lasso.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
 lasso.get_support()
 
@@ -134,6 +183,14 @@ x_train_selected = lasso.transform(pd.DataFrame(x_train).fillna(0))
 x_test_selected = lasso.transform(pd.DataFrame(x_test).fillna(0))
  
 print(x_train_selected.shape, x_test_selected.shape)
+
+
+
+
+
+
+## dit niet meer nodig 
+
 # %% Univariate feature selection
 #from sklearn.feature_selection import SelectKBest
 #from sklearn.feature_selection import f_classif

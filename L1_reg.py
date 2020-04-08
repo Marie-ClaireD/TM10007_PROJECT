@@ -80,7 +80,7 @@ def split_sets(x, y):
 x_train, x_test, y_train, y_test = split_sets(features, labels)
 scaler = StandardScaler()
 scaler.fit(pd.DataFrame(x_train).fillna(0))
-
+scaler.transform(x_test)
 # %% Perform L1 regularization using Logistic regression and L1 penalty
 # sel_ = SelectFromModel(LogisticRegression(solver='saga', C=1, penalty='l1'))
 # sel_.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
@@ -92,21 +92,60 @@ scaler.fit(pd.DataFrame(x_train).fillna(0))
 # print('features with coefficients shrank to zero: {}'.format(
 #      np.sum(sel_.estimator_.coef_ == 0)))
 
-
 # %% Finding best value for alpha parameter (Lasso)
-#alphas = [0.000000001,0.00000001,0.0000001,0.000001,0.00001,0.0001,0.001,0.01,0.1,1]
-#for a in alphas:
-#    lasso = Lasso(alpha=a, random_state=None, max_iter=10000)
-#    lasso.fit(x_train,y_train)
-#    train_score=lasso.score(x_train,y_train)
-#    coeff_used = np.sum(lasso.coef_!=0) # Number of coefficents with non zero weight
- 
-#    print('For alpha =',a)
-#    print ('training score:',train_score )
-#    print('number of features used:',coeff_used)
+n_alphas = 200
+alphas = np.logspace(-10,1,n_alphas)
+
+coefs = []
+accuracies = []
+
+for a in alphas:
+    clf = Lasso(alpha=a, max_iter=10000)
+    clf.fit(x_train,y_train)
+    y_pred = clf.predict(x_test)
+    train_score = clf.score(x_train,y_train)
+    coeff_used = np.sum(clf.coef_ != 0) # Number of coefficents with non zero weight
+    print('For alpha =',a)
+    print("\t Misclassified: %d / %d" % ((y_test != y_pred).sum(), y_test.shape[0]))
+    print ('training score:',train_score )
+    print('number of features used:',coeff_used)
+
+    # Append statistics
+    accuracy = float((y_test == y_pred).sum()) / float(y_test.shape[0])
+    accuracies.append(accuracy)
+    coefs.append(clf.coef_)
+
+# #############################################################################
+# Display results
+
+# Weights
+plt.figure()
+ax = plt.gca()
+ax.plot(alphas, np.squeeze(coefs))
+ax.set_xscale('log')
+ax.set_xlim(ax.get_xlim()[::-1])  # reverse axis
+plt.xlabel('alpha')
+plt.ylabel('weights')
+plt.title('Ridge coefficients as a function of the regularization')
+plt.axis('tight')
+plt.show()
+
+# Performance
+plt.figure()
+ax = plt.gca()
+ax.plot(alphas, accuracies)
+ax.set_xscale('log')
+ax.set_xlim(ax.get_xlim()[::-1])  # reverse axis
+plt.xlabel('alpha')
+plt.ylabel('accuracies')
+plt.title('Performance as a function of the regularization')
+plt.axis('tight')
+plt.show()
+
+
 
 # %% Perform L1 regularization using Linear regression (Lasso)
-lasso = SelectFromModel(estimator=Lasso(alpha=0.001, random_state=None, max_iter=10000), threshold='median')
+lasso = SelectFromModel(estimator=Lasso(alpha=0.0001, random_state=None, max_iter=10000), threshold='median')
 lasso.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
 lasso.get_support()
 
@@ -126,7 +165,6 @@ x_train_selected = lasso.transform(pd.DataFrame(x_train).fillna(0))
 x_test_selected = lasso.transform(pd.DataFrame(x_test).fillna(0))
  
 print(x_train_selected.shape, x_test_selected.shape)
-
 # %% Univariate feature selection
 #from sklearn.feature_selection import SelectKBest
 #from sklearn.feature_selection import f_classif

@@ -134,14 +134,7 @@ def split_sets(x, y):
 
 x_train, x_test, y_train, y_test = split_sets(features, labels)
 
-def split_sets2(x,y):
-    '''
-    '''
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=None)
-    x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.25, random_state=None) 
-    return x_train, x_val, y_train, y_val
-
-x_train, x_val, y_train, y_val = split_sets2(x_train, y_train)
+#%%
 
 
 # hyperparameters random forest
@@ -174,7 +167,7 @@ model = random_search.fit(x_train, y_train)
 hp_lg = model.best_estimator_.get_params()
 pprint(hp_lg)
 X = features
-pca = PCA(n_components=30)
+pca = PCA(n_components=47)
 X = pca.fit_transform(X)
 y = labels
 #%%

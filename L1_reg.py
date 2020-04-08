@@ -93,57 +93,26 @@ scaler.transform(x_test)
 #      np.sum(sel_.estimator_.coef_ == 0)))
 
 # %% Finding best value for alpha parameter (Lasso)
-n_alphas = 200
-alphas = np.logspace(-10,1,n_alphas)
+n_alphas = 100
+alphas = np.logspace(-10,0,n_alphas)
 
+# Construct classifiers
 coefs = []
 accuracies = []
 
 for a in alphas:
+    # Fit classifier
     clf = Lasso(alpha=a, max_iter=10000)
-    clf.fit(x_train,y_train)
-    y_pred = clf.predict(x_test)
+    clf.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
     train_score = clf.score(x_train,y_train)
+    test_score = clf.score(x_test,y_test)
     coeff_used = np.sum(clf.coef_ != 0) # Number of coefficents with non zero weight
+ 
     print('For alpha =',a)
-    print("\t Misclassified: %d / %d" % ((y_test != y_pred).sum(), y_test.shape[0]))
-    print ('training score:',train_score )
+    print('training score:',train_score)
+    print('testing score:',test_score)
     print('number of features used:',coeff_used)
-
-    # Append statistics
-    accuracy = float((y_test == y_pred).sum()) / float(y_test.shape[0])
-    accuracies.append(accuracy)
-    coefs.append(clf.coef_)
-
-# #############################################################################
-# Display results
-
-# Weights
-plt.figure()
-ax = plt.gca()
-ax.plot(alphas, np.squeeze(coefs))
-ax.set_xscale('log')
-ax.set_xlim(ax.get_xlim()[::-1])  # reverse axis
-plt.xlabel('alpha')
-plt.ylabel('weights')
-plt.title('Ridge coefficients as a function of the regularization')
-plt.axis('tight')
-plt.show()
-
-# Performance
-plt.figure()
-ax = plt.gca()
-ax.plot(alphas, accuracies)
-ax.set_xscale('log')
-ax.set_xlim(ax.get_xlim()[::-1])  # reverse axis
-plt.xlabel('alpha')
-plt.ylabel('accuracies')
-plt.title('Performance as a function of the regularization')
-plt.axis('tight')
-plt.show()
-
-
-
+    
 # %% Perform L1 regularization using Linear regression (Lasso)
 lasso = SelectFromModel(estimator=Lasso(alpha=0.0001, random_state=None, max_iter=10000), threshold='median')
 lasso.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)

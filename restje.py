@@ -61,11 +61,16 @@ labels = np.array(labels)
 print(f'Number of high risk patients: {np.count_nonzero(labels)}') 
 print(f'Number of low risk patients: {len(labels) - np.count_nonzero(labels)}')
 
+#%% 
 
 
+
+ 
+
+#%%
 dict_clf = {}  
 
-crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
+crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=2, random_state=None) 
 
 for train_index, test_index in crss_val.split(features, labels):
     x_train, x_test = features[train_index], features[test_index]
@@ -80,13 +85,13 @@ for train_index, test_index in crss_val.split(features, labels):
     x_train = pca.transform(x_train)
     x_test = pca.transform(x_test)
 
-    clsfs = [KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
-    param_distributions = [{"n_neighbors": randint(1, 20)}, {"n_estimators": randint(1, 200),
-                            "max_features": randint(5, 30),
-                            "max_depth": randint(2, 18),
-                            "min_samples_leaf": randint(1, 17)},{"C": randint(0.1, 100),
-                            "gamma": ['auto','scale'],
-                            "kernel": ['rbf','poly','sigmoid','linear']}]
+    clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+    param_distributions = [{"penalty": ['l1', 'l2', 'elasticnet', 'none'],
+                            "max_iter": randint(1, 200)}, {"leaf_size": randint(1,50), 
+                            "n_neighbors": randint(1, 20), "p": [1,2]}, {"n_estimators": randint(1, 500),
+                            "max_features": randint(1, 30), "max_depth": randint(1, 20),
+                            "min_samples_leaf": randint(1, 20)}, {"C": randint(0.1, 100),
+                            "gamma": ['auto', 'scale'], "kernel": ['rbf', 'poly', 'sigmoid', 'linear']}]
 
     
 
@@ -104,19 +109,8 @@ for train_index, test_index in crss_val.split(features, labels):
         random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, n_jobs=-1)
         model = random_search.fit(x_train, y_train)
         parameters = model.best_estimator_.get_params()
-        #clf_selected.append(model.best_estimator_)
-        #pprint(parameters)
-        #hyperparameters_clsfs.append(parameters)
-        result = pd.DataFrame()
-        values = pd.DataFrame(model.cv_results_)
-
-        
-        model.fit(x_train, y_train)
-        prediction = model.predict(x_test)
-        dict_clf[clf] = prediction
+    
     pprint(len(dict_clf))
-
-
         #performance_scores = pd.DataFrame()                  
         #auc_scores.append(roc_auc_score(y_test, prediction))
         #conf_mat = confusion_matrix(y_test, prediction)

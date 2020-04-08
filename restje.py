@@ -1,4 +1,4 @@
-
+#%%
 import pandas as pd
 import numpy as np
 import statistics
@@ -59,6 +59,7 @@ labels = np.array(labels)
 print(f'Number of high risk patients: {np.count_nonzero(labels)}') 
 print(f'Number of low risk patients: {len(labels) - np.count_nonzero(labels)}')
 
+#%% 
 
 def split_sets(features, labels):
     """
@@ -74,10 +75,7 @@ def split_sets(features, labels):
 
 x_train, x_test, y_train, y_test = split_sets(features, labels) 
 
-
-
-
-
+#%%
 
 crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=2, random_state=None) 
 
@@ -94,26 +92,31 @@ for train_index, test_index in crss_val.split(features, labels):
     x_train = pca.transform(x_train)
     x_test = pca.transform(x_test)
 
-    clsfs = [KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
-    param_distributions = [{"n_neighbors": randint(1, 20)}, {"n_estimators": randint(1, 200),
-                            "max_features": randint(5, 30),
-                            "max_depth": randint(2, 18),
-                            "min_samples_leaf": randint(1, 17)},{"C": randint(0.1, 100),
-                            "gamma": ['auto','scale'],
-                            "kernel": ['rbf','poly','sigmoid','linear']}]
+    clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+    param_distributions = [{"penalty": ['l1', 'l2', 'elasticnet', 'none'],
+                            "max_iter": randint(1, 200)}, {"leaf_size": randint(1,50), 
+                            "n_neighbors": randint(1, 20), "p": [1,2]}, {"n_estimators": randint(1, 500),
+                            "max_features": randint(1, 30), "max_depth": randint(1, 20),
+                            "min_samples_leaf": randint(1, 20)}, {"C": randint(0.1, 100),
+                            "gamma": ['auto', 'scale'], "kernel": ['rbf', 'poly', 'sigmoid', 'linear']}]
 
     hyperparameters_clsfs = []
-    clf_selected = [] 
+    
     for clf, param_dist in zip(clsfs, param_distributions):
         random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, n_jobs=-1)
-        model = random_search.fit(x, y)
+        model = random_search.fit(x_train, y_train)
         parameters = model.best_estimator_.get_params()
-        clf_selected.append(model.best_estimator_)
         #pprint(parameters)
         hyperparameters_clsfs.append(parameters)
         values = pd.DataFrame(model.cv_results_)
+    
+    hyperparameters = hyperparameters_clsfs
+    print(hyperparameters)
 
+    clsfs = [LogisticRegression(penalty=hyperparameters[0].get('penalty'), max_iter=hyperparameters[0].get('max_iter')), KNeighborsClassifier(leaf_size=hyperparameters[1].get('leaf_size'), n_neighbors=hyperparameters[1].get('n_neighbors'), p=hyperparameters[1].get('p')), RandomForestClassifier(bootstrap=True, max_depth=hyperparameters[2].get('max_depth'), max_features=hyperparameters[2].get('max_features'), min_samples_leaf=hyperparameters[2].get('min_samples_leaf'), n_estimators=hyperparameters[2].get('n_estimators'), random_state=None), SVC(C=hyperparameters[3].get("C"), gamma=hyperparameters[3].get("gamma"), kernel=hyperparameters[3].get("kernel"), probability=True)]
+    clsfs_names =['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
 
+#%%
         clf.fit(x_train, y_train)
         prediction = clf.predict(x_val)
 

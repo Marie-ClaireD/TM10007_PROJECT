@@ -81,7 +81,6 @@ def split_sets(x, y):
     
     return x_train, x_test, y_train, y_test
   
-
 x_train, x_test, y_train, y_test = split_sets(features, labels)
 
 #%%
@@ -90,13 +89,13 @@ def get_hyperparameters(x, y):
     Random Search for Hyperparameters classifiers
     """
     
-    clsfs = [KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
-    param_distributions = [{"leaf_size": randint(1,50), "n_neighbors": randint(1, 20), "p": [1,2]}, {"n_estimators": randint(1, 500),
-                "max_features": randint(1, 30),
-                "max_depth": randint(1, 20),
-                "min_samples_leaf": randint(1, 20)}, {"C": randint(0.1, 100),
-                "gamma": ['auto', 'scale'],
-                "kernel": ['rbf', 'poly', 'sigmoid', 'linear']}]
+    clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+    param_distributions = [{"penalty": ['l1', 'l2', 'elasticnet', 'none'],
+                            "max_iter": randint(1, 200)}, {"leaf_size": randint(1,50), 
+                            "n_neighbors": randint(1, 20), "p": [1,2]}, {"n_estimators": randint(1, 500),
+                            "max_features": randint(1, 30), "max_depth": randint(1, 20),
+                            "min_samples_leaf": randint(1, 20)}, {"C": randint(0.1, 100),
+                            "gamma": ['auto', 'scale'], "kernel": ['rbf', 'poly', 'sigmoid', 'linear']}]
 
     hyperparameters_clsfs = []
     for clf, param_dist in zip(clsfs, param_distributions):
@@ -105,15 +104,8 @@ def get_hyperparameters(x, y):
         parameters = model.best_estimator_.get_params()
         pprint(parameters)
         hyperparameters_clsfs.append(parameters)
-        values = model.cv_results_
-        pprint(values)
-        # predictions = model.predict(x)
-        # errors = abs(predictions - y)
-        # mape = 100 * np.mean(errors / y)
-        # accuracy = 100 - mape
-        # print('Model Performance')
-        # print('Average Error: {:0.4f} degrees.'.format(np.mean(errors)))
-        # print('Accuracy = {:0.2f}%.'.format(accuracy))
+        scores = pd.DataFrame(model.cv_results_)
+        pprint(scores)
 
     return hyperparameters_clsfs
 
@@ -239,13 +231,13 @@ def evaluate(model, x, y):
     
     return accuracy
     
-base_model = RandomForestClassifier(bootstrap=True, random_state = 42)
+base_model = RandomForestClassifier(bootstrap=True, random_state=None)
 base_model.fit(x_train, y_train)
-base_accuracy = evaluate(base_model, x_train, y_train)
+base_accuracy = evaluate(base_model, x_test, y_test)
 
 best_random = RandomForestClassifier(bootstrap=True, max_depth=hyperparameters[1].get('max_depth'), max_features=hyperparameters[1].get('max_features'), min_samples_leaf=hyperparameters[1].get('min_samples_leaf'), n_estimators=hyperparameters[1].get('n_estimators'), random_state=None)
 best_random.fit(x_train, y_train)
-random_accuracy = evaluate(best_random, x_train, y_train)
+random_accuracy = evaluate(best_random, x_test, y_test)
 
 print('Improvement of {:0.2f}%.'.format( 100 * (random_accuracy - base_accuracy) / base_accuracy))
 

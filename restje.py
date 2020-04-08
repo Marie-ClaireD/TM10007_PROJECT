@@ -211,3 +211,39 @@ for clf, param_dist in zip(clsfs, param_distributions):
 
 
 # %%
+#%% Pipeline met Random Search
+# Het model wordt nog gefit op x_train en y_train maar dat moet nog anders
+crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
+for train_index, test_index in crss_val.split(features, labels):
+    x_train, x_test = features[train_index], features[test_index]
+    y_train, y_test = labels[train_index], labels[test_index]
+    
+    clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None)]#, SVC(probability=True)]
+    param_distributions = [{"penalty": ['l1', 'l2', 'elasticnet', 'none'],
+                            "max_iter": randint(1, 200)}, {"leaf_size": randint(1,50), 
+                            "n_neighbors": randint(1, 20), "p": [1,2]}, {"n_estimators": randint(1, 500),
+                            "max_features": randint(1, 30), "max_depth": randint(1, 20),
+                            "min_samples_leaf": randint(1, 20)}]#, {"C": randint(0.1, 100),
+                            #"gamma": ['auto', 'scale'], "kernel": ['rbf', 'poly', 'sigmoid', 'linear']}]
+    for clf, param_dist in zip(clsfs, param_distributions):
+        random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, n_jobs=-1)
+        model = random_search.fit(x_train, y_train)
+        clf = model.best_estimator_
+        
+        classifier_pipeline = make_pipeline(preprocessing.StandardScaler(), PCA(n_components=47), clf)
+        classifier_pipeline.fit(x_train, y_train)
+        if classifier_pipeline[2] == KNeighborsClassifier():
+            prediction = classifier_pipeline.predict(x_test)
+            score = classifier_pipeline.predict(x_test, y_test)
+            pprint(score)
+        # Werkt nog niet maar misschien zoiets en dan appenden in een lijst per classifier
+
+        # pprint(classifier_pipeline)
+        # pprint(scores.mean())
+
+        # prediction = 
+        # pprint(prediction[0])
+        
+        
+
+# %%

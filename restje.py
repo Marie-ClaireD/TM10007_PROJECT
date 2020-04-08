@@ -1,3 +1,4 @@
+#%%
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
@@ -17,9 +18,11 @@ from sklearn.metrics import auc, roc_curve, accuracy_score, confusion_matrix, ro
 from scipy import interp
 from scipy.stats import randint
 from pprint import pprint
+from sklearn.pipeline import make_pipeline
+from sklearn import preprocessing
+from sklearn.model_selection import cross_val_score
 
 # The training set is again divided into a training and a validation set and afterwards classified using a leave one out validation and logistic regression.
-
 
 from hn.load_data import load_data
 
@@ -60,12 +63,6 @@ labels = np.array(labels)
 #number of high and low risk patients is printed to the terminal
 print(f'Number of high risk patients: {np.count_nonzero(labels)}') 
 print(f'Number of low risk patients: {len(labels) - np.count_nonzero(labels)}')
-
-#%% 
-
-
-
- 
 
 #%%
 dict_clf = {}  
@@ -165,7 +162,7 @@ for train_index, test_index in crss_val.split(features, labels):
 
 
 
-
+#%%
 def compute_performance(labels_test, predict_test):
     """
     Compute accuracy, sensitivity and specificity based on confusion matrix.
@@ -191,3 +188,26 @@ def compute_performance(labels_test, predict_test):
     
     return(accuracy, sensitivity, specificity)
 
+
+#%% Pipeline met Random Search
+# Het model wordt nog gefit op x_train en y_train maar dat moet nog anders
+clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+param_distributions = [{"penalty": ['l1', 'l2', 'elasticnet', 'none'],
+                        "max_iter": randint(1, 200)}, {"leaf_size": randint(1,50), 
+                        "n_neighbors": randint(1, 20), "p": [1,2]}, {"n_estimators": randint(1, 500),
+                        "max_features": randint(1, 30), "max_depth": randint(1, 20),
+                        "min_samples_leaf": randint(1, 20)}, {"C": randint(0.1, 100),
+                        "gamma": ['auto', 'scale'], "kernel": ['rbf', 'poly', 'sigmoid', 'linear']}]
+for clf, param_dist in zip(clsfs, param_distributions):
+    random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, n_jobs=-1)
+    model = random_search.fit(x_train, y_train)
+    clf = model.best_estimator_
+    pprint(clf)
+
+    classifier_pipeline = make_pipeline(preprocessing.StandardScaler(), clf)
+    scores = cross_val_score(classifier_pipeline, features, labels, cv=5)
+    pprint(scores)
+    pprint(scores.mean())
+
+
+# %%

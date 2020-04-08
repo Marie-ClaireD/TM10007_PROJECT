@@ -93,8 +93,8 @@ scaler.transform(x_test)
 #      np.sum(sel_.estimator_.coef_ == 0)))
 
 # %% Finding best value for alpha parameter (Lasso)
-n_alphas = 200
-alphas = np.logspace(-9,1,num=n_alphas)
+n_alphas = 100
+alphas = np.logspace(-2,0,num=n_alphas)
 
 #####  Los berekenen van scores per alpha ###### 
 # Construct classifiers
@@ -102,7 +102,7 @@ coefs = []
 accuracies = []
 training_scores = []
 test_scores = []
-
+a_max=0
 for a in alphas:
     # Fit classifier
     clf = Lasso(alpha=a, max_iter=10000)
@@ -114,62 +114,27 @@ for a in alphas:
     training_scores.append(training_score)
     test_scores.append(test_score)
 
+    if test_score > a_max: 
+        a_max = test_score
+        best_alpha = a
+
+ 
     # Zet dit uit als je het niet voor elke wil printen! 
     #print('For alpha =',a)
     #print('training score:',training_score)
     #print('testing score:',test_score)
     #print('number of features used:',coeff_used)
 
-#### Weights en accuracy's van verschillende alphas plotten
-# Construct classifiers
-coefs = []
-accuracies = []
-
-for a in alphas:
-    # Fit classifier
-    clf = Lasso(alpha=a, fit_intercept=False, max_iter = 10000)
-    clf.fit(x_train, y_train)
-    y_pred = clf.predict(x_test)
-    
-    # Append statistics
-    accuracy = float((y_test == y_pred).sum()) / float(y_test.shape[0])
-    accuracies.append(accuracy)
-    coefs.append(clf.coef_)
-
-# Display results
-
-# Weights
-plt.figure()
-ax = plt.gca()
-ax.plot(alphas, np.squeeze(coefs))
-ax.set_xscale('log')
-ax.set_xlim(ax.get_xlim()[::-1])  # reverse axis
-plt.xlabel('alpha')
-plt.ylabel('weights')
-plt.title('Lasso coefficients as a function of the regularization')
-plt.axis('tight')
-plt.show()
-
-# Performance
-plt.figure()
-ax = plt.gca()
-ax.plot(alphas, accuracies)
-ax.set_xscale('log')
-ax.set_xlim(ax.get_xlim()[::-1])  # reverse axis
-plt.xlabel('alpha')
-plt.ylabel('accuracies')
-plt.title('Performance as a function of the regularization')
-plt.axis('tight')
-plt.show()
+print(a_max)
+print(best_alpha)
     
 # %% Perform L1 regularization using Linear regression (Lasso)
-lasso = SelectFromModel(estimator=Lasso(alpha=0.0000001, random_state=None, max_iter=10000), threshold='median')
+lasso = SelectFromModel(estimator=Lasso(alpha=0.0335, random_state=None, max_iter=10000), threshold='median')
 lasso.fit(scaler.transform(pd.DataFrame(x_train).fillna(0)), y_train)
 lasso.get_support()
 
 selected_feat = data.columns[(lasso.get_support())]
 print('total features: {}'.format((x_train.shape[1])))
-print('selected features with Lasso: {}'.format(len(selected_feat)))
 print('features with coefficients shrank to zero: {}'.format(
      np.sum(lasso.estimator_.coef_ == 0)))
 print('Feature coefficients:',lasso.estimator_.coef_)

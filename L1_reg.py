@@ -111,13 +111,9 @@ for a in alphas:
     test_score = clf.score(x_test,y_test)
     coeff_used = np.sum(clf.coef_ != 0) # Number of coefficents with non zero weight
 
-    training_scores.append(training_score)
-    test_scores.append(test_score)
-
     if test_score > a_max: 
         a_max = test_score
         best_alpha = a
-
  
     # Zet dit uit als je het niet voor elke wil printen! 
     #print('For alpha =',a)

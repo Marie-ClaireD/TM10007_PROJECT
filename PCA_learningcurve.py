@@ -346,14 +346,14 @@ plot_learning_curve(estimator, title, X, y, axes=axes[:, 5], ylim=(0, 1.5),
 title = "Learning Curves (KNeirest Neighbors)"
 cv = RepeatedKFold(n_splits=2, n_repeats=10, random_state=None)
 estimator = KNeighborsClassifier()
-plot_learning_curve(estimator, title, X, y, axes=axes[:, 4], ylim=(0, 1.5),
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 6], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 
 # KNN with hyperparameters
 title = "Learning Curves (KNeirest Neighbors)"
 cv = RepeatedKFold(n_splits=2, n_repeats=10, random_state=None)
 estimator = KNeighborsClassifier(leaf_size=hp_knn.get('leaf_size'), n_neighbors=hp_knn.get('n_neighbors'), p=hp_knn.get('p'))
-plot_learning_curve(estimator, title, X, y, axes=axes[:, 5], ylim=(0, 1.5),
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 7], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 plt.show()
 

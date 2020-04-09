@@ -121,47 +121,39 @@ def evaluate_hyperparameters(x, y):
         print(f'Best score classifier = {best_score}')
         print(f'For model with hyperparameters: {model}')
     
-evaluate_hyperparameters(x_train, y_train)
+#evaluate_hyperparameters(x_train, y_train)
 #%% Apply scaling
 def scale_data(x, y):
     """Scale data with Standard scaler"""
 
     scaler = StandardScaler()
-    x_train = scaler.fit_transform(x_train)
-    x_test = scaler.transform(x_test)
-    return x_train, y_train
+    x_train = scaler.fit_transform(x)
+    x_test = scaler.transform(y)
+    return x_train, x_test
 
 #%% Apply PCA
 def pca_data(x, y):
     """Apply PCA with 47 components to data"""
 
     pca = PCA(n_components=47)
-    pca.fit(x_train)
-    x_train = pca.transform(x_train)
-    x_test = pca.transform(x_test)
-    return x_train, y_train
-
-#%% Cross validation
-crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
-for train_index, test_index in crss_val.split(features, labels):
-    x_train, x_test = features[train_index], features[test_index]
-    y_train, y_test = labels[train_index], labels[test_index]
-   
-    # Scale data with Standard Scalar
-    x_train, y_train = scale_data(x_train, y_train)
-    # Apply PCA to data
-    x_train, y_train = pca_data(x_train, y_train)
+    pca.fit(x)
+    x_train = pca.transform(x)
+    x_test = pca.transform(y)
+    return x_train, x_test
 
 #%% Evaluation on test set
+def evaluation_testset(models, x_test, y_test):
+    """ Evaluate model on testset"""
+
     accuracies = []
     auc_scores = []
     specificities = []
     sensitivities = []
     tprs = []
     aucs = []
+    #performance_clf = []
     base_fpr = np.linspace(0, 1, 101)
 
-    fit_models, models = get_hyperparameters(x_train, y_train)
     for model in models:
         prediction = model.predict(x_test)
         performance_scores = pd.DataFrame()
@@ -202,25 +194,49 @@ for train_index, test_index in crss_val.split(features, labels):
     plt.ylabel('True Positive Rate')
     plt.xlabel('False Positive Rate')
     plt.legend(loc="lower right")
-    plt.title(f'Receiver operating characteristic (ROC) curve') # {model(type)._name_}')
+    plt.title(f'Receiver operating characteristic (ROC) curve {model(type)}')
     plt.grid()
     plt.show()
 
+return performance_scores
+#performance_clf.append(performance_scores)
+
+#pprint(performance_clf)
+
+# data1 = pd.DataFrame(performance_clf[0], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=1)
+# data2 = pd.DataFrame(performance_clf[1], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=2)
+# data3 = pd.DataFrame(performance_clf[2], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=3)
+# data4 = pd.DataFrame(performance_clf[3], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=4)
+
+# cdf = pd.concat([data1, data2, data3, data4])
+# mdf = pd.melt(cdf, id_vars=['Location'], var_name=['Index'])
+
+# ax = sns.boxplot(x="Location", y="value", hue="Index", data=mdf)    
+# plt.xticks([0, 1, 2, 3], ['Logistic Regression', 'kNN', 'Random Forest', 'SVM'])
+# ax.set_xlabel('Classifier')
+# ax.set_ylabel('Performance')
+# plt.show()
+
+#%% Cross validation
+
+performance_clf = []
+crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
+for train_index, test_index in crss_val.split(features, labels):
+    x_train, x_test = features[train_index], features[test_index]
+    y_train, y_test = labels[train_index], labels[test_index]
+   
+    # Scale data with Standard Scalar
+    x_train, x_test = scale_data(x_train, x_test)
+
+    # Apply PCA to data
+    x_train, x_test = pca_data(x_train, x_test)
+
+    # Find best models
+    fit_models, models = get_hyperparameters(x_train, y_train)
+
+    # Evaluate on test set
+    performance_scores = evaluation_testset(models, x_test, y_test)
     performance_clf.append(performance_scores)
+    pprint(performance_clf)
 
-pprint(performance_clf)
-
-data1 = pd.DataFrame(performance_clf[0], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=1)
-data2 = pd.DataFrame(performance_clf[1], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=2)
-data3 = pd.DataFrame(performance_clf[2], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=3)
-data4 = pd.DataFrame(performance_clf[3], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=4)
-
-cdf = pd.concat([data1, data2, data3, data4])
-mdf = pd.melt(cdf, id_vars=['Location'], var_name=['Index'])
-
-
-ax = sns.boxplot(x="Location", y="value", hue="Index", data=mdf)    
-plt.xticks([0, 1, 2, 3], ['Logistic Regression', 'kNN', 'Random Forest', 'SVM'])
-ax.set_xlabel('Classifier')
-ax.set_ylabel('Performance')
-plt.show()
+ # %%

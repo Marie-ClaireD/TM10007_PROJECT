@@ -106,11 +106,11 @@ def get_hyperparameters(x, y):
         fit_model = random_search.fit(x, y)
         fit_models.append(fit_model)
         model = fit_model.best_estimator_
-        models.append(model)
+        #models.append(model)
         # parameters = fit_model.best_estimator_.get_params()
         # best_score = fit_model.best_score_
 
-    return fit_models, models    
+    return fit_model, model    
 #%% Evaluate Hyperparameters
 def evaluate_hyperparameters(x, y):
     
@@ -153,7 +153,6 @@ def evaluation_testset(models, x_test, y_test):
     aucs = []
     #performance_clf = []
     base_fpr = np.linspace(0, 1, 101)
-
     for model in models:
         prediction = model.predict(x_test)
         performance_scores = pd.DataFrame()
@@ -194,11 +193,11 @@ def evaluation_testset(models, x_test, y_test):
     plt.ylabel('True Positive Rate')
     plt.xlabel('False Positive Rate')
     plt.legend(loc="lower right")
-    plt.title(f'Receiver operating characteristic (ROC) curve {model(type)}')
+    plt.title(f'Receiver operating characteristic (ROC) curve {model}')
     plt.grid()
     plt.show()
 
-return performance_scores
+    return performance_scores
 #performance_clf.append(performance_scores)
 
 #pprint(performance_clf)
@@ -240,3 +239,43 @@ for train_index, test_index in crss_val.split(features, labels):
     pprint(performance_clf)
 
  # %%
+clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
+param_distributions = [{'penalty': ['l1', 'l2', 'elasticnet', 'none'],
+                        'max_iter': randint(1, 100)}, {'leaf_size': randint(1, 50),
+                        'n_neighbors': randint(1, 20), 'p': [1, 2]}, {'n_estimators': randint(1, 500),
+                        'max_features': randint(1, 30), 'max_depth': randint(1, 20),
+                        'min_samples_leaf': randint(1, 20)}, {'C': randint(0.1, 100),
+                        'gamma': ['auto', 'scale'], 'kernel': ['rbf', 'poly', 'sigmoid', 'linear']}]
+
+performance_clf = []
+models = []
+for clf, name, param_dist in zip(clsfs, names, param_distributions):
+
+    # performance_scores = pd.DataFrame()
+    # models = []
+    # accuracy = []
+    crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
+    for train_index, test_index in crss_val.split(features, labels):
+        x_train, x_test = features[train_index], features[test_index]
+        y_train, y_test = labels[train_index], labels[test_index]
+        
+        # Scale data with Standard Scalar
+        x_train, x_test = scale_data(x_train, x_test)
+
+        # Apply PCA to data
+        x_train, x_test = pca_data(x_train, x_test)
+
+        random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, scoring='accuracy', n_jobs=-1)
+        model = random_search.fit(x_train, y_train)
+        model = model.best_estimator_
+        models.append(model)
+        print(models)
+    
+        # Evaluate on test set
+        #performance_scores = evaluation_testset(model, x_test, y_test)
+        #performance_clf.append(performance_scores)
+        #pprint(performance_clf)
+
+
+# %%

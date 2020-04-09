@@ -12,7 +12,7 @@ from pprint import pprint
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
-from sklearn.model_selection import LeaveOneOut, RepeatedKFold, StratifiedKFold 
+from sklearn.model_selection import LeaveOneOut, RepeatedKFold, StratifiedKFold, RepeatedStratifiedKFold
 from sklearn.model_selection import learning_curve
 from sklearn.model_selection import ShuffleSplit
 from sklearn.feature_selection import mutual_info_classif
@@ -222,14 +222,14 @@ from sklearn.feature_selection import SelectFromModel
 numerics = ['int16','int32','int64','float16','float32','float64']
 numerical_vars = list(data.select_dtypes(include=numerics).columns)
 data1 = data[numerical_vars]
-clsfs = [SVC(probability=True),LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None)]
+clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True, max_iter=10**7)]
 names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
-param_distributions = [{'C': randint(0.1, 100),
-                        'gamma': ['auto', 'scale'], 'kernel': ['sigmoid', 'linear']},{'penalty': ['l1', 'l2', 'elasticnet', 'none'],
+param_distributions = [{'penalty': ['l1', 'l2', 'elasticnet', 'none'],
                         'max_iter': randint(1, 100)}, {'leaf_size': randint(1, 50),
                         'n_neighbors': randint(1, 20), 'p': [1, 2]}, {'n_estimators': randint(1, 500),
                         'max_features': randint(1, 30), 'max_depth': randint(1, 20),
-                        'min_samples_leaf': randint(1, 20)}]
+                        'min_samples_leaf': randint(1, 20)},{'C': randint(0.1, 100),
+                        'gamma': ['auto', 'scale'], 'kernel': ['rbf','sigmoid', 'linear', 'poly']}]
 performance_clf = []
 for clf,name, param_dist in zip(clsfs, names, param_distributions):
     accuracies = []
@@ -345,6 +345,7 @@ plt.show()
 
     # cdf = pd.concat([data1, data2, data3, data4])
     # mdf = pd.melt(cdf, id_vars=['Location'], var_name=['Index'])
+
 
     # ax = sns.boxplot(x="Location", y="value", hue="Index", data=mdf)    
     # plt.xticks([0, 1, 2, 3], ['Logistic Regression', 'kNN', 'Random Forest', 'SVM'])

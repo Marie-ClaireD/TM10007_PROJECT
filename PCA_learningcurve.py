@@ -166,10 +166,20 @@ random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=2
 model = random_search.fit(x_train, y_train)
 hp_lg = model.best_estimator_.get_params()
 pprint(hp_lg)
+
+# hyperparameters KNN
+param_dist = {"leaf_size": randint(1,50), "n_neighbors": randint(1, 20), "p": [1,2]}
+clf = KNeighborsClassifier()
+random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=20, cv=5, n_jobs=-1)
+model = random_search.fit(x_train, y_train)
+hp_knn = model.best_estimator_.get_params()
+
 X = features
 pca = PCA(n_components=47)
 X = pca.fit_transform(X)
 y = labels
+
+
 #%%
 def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
                         n_jobs=None, train_sizes=np.linspace(0.1,1,5)):
@@ -286,17 +296,8 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
     return plt
 
 
-fig, axes = plt.subplots(3, 6, figsize=(10, 15))
-title = "Learning Curves (Naive Bayes)"
+fig, axes = plt.subplots(3, 8, figsize=(10, 15))
 
-# Gaussian Naive Bayes
-#cv = ShuffleSplit(n_splits=100, test_size=0.2, random_state=0)
-
-#estimator = GaussianNB()
-#plot_learning_curve(estimator, title, X, y, axes=axes[:, 0], ylim=(0.2, 1.5),
-#                    cv=cv, n_jobs=4)
-
-#title = r"Learning Curves (SVM, RBF kernel, $\gamma=0.001$)"
 # SVM
 cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)
 estimator = SVC()
@@ -341,3 +342,17 @@ plot_learning_curve(estimator, title, X, y, axes=axes[:, 5], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 plt.show()
 
+# KNN
+title = "Learning Curves (Logistic Regression)"
+cv = RepeatedKFold(n_splits=2, n_repeats=10, random_state=None)
+estimator = KNeighborsClassifier()
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 4], ylim=(0, 1.5),
+                    cv=cv, n_jobs=4)
+
+# KNN with hyperparameters
+title = "Learning Curves (Logistic Regression)"
+cv = RepeatedKFold(n_splits=2, n_repeats=10, random_state=None)
+estimator = KNeighborsClassifier(leaf_size=hp_knn.get('leaf_size'), n_neighbors=hp_knn.get('n_neighbors'), p=hp_knn.get('p'))
+plot_learning_curve(estimator, title, X, y, axes=axes[:, 5], ylim=(0, 1.5),
+                    cv=cv, n_jobs=4)
+plt.show()

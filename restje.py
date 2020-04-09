@@ -195,6 +195,7 @@ def compute_performance(labels_test, predict_test):
 # Het model wordt nog gefit op x_train en y_train maar dat moet nog anders
 
 clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
 param_distributions = [{'penalty': ['l1', 'l2', 'elasticnet', 'none'],
                         'max_iter': randint(1, 100)}, {'leaf_size': randint(1, 50),
                         'n_neighbors': randint(1, 20), 'p': [1, 2]}, {'n_estimators': randint(1, 500),
@@ -203,7 +204,7 @@ param_distributions = [{'penalty': ['l1', 'l2', 'elasticnet', 'none'],
                         'gamma': ['auto', 'scale'], 'kernel': ['rbf', 'poly', 'sigmoid', 'linear']}]
 
 performance_clf = []
-for clf, param_dist in zip(clsfs, param_distributions):
+for clf, name, param_dist in zip(clsfs, names, param_distributions):
     accuracies = []
     auc_scores = []
     specificities = []
@@ -264,37 +265,36 @@ for clf, param_dist in zip(clsfs, param_distributions):
 
     tprs_upper = np.minimum(mean_tprs + std, 1)
     tprs_lower = mean_tprs - std
-    # plt.figure(figsize=(12, 8))
-    # plt.plot(base_fpr, mean_tprs, 'c', alpha=0.8, label=r'Mean ROC (AUC = %0.2f $\pm$ %0.2f)' % (mean_auc, std_auc),)
-    # plt.fill_between(base_fpr, tprs_lower, tprs_upper, color='c', alpha=0.2)
-    # plt.plot([0, 1], [0, 1], linestyle='--', lw=2, color='k', label='Chance level', alpha=0.8)
-    # plt.xlim([-0.01, 1.01])
-    # plt.ylim([-0.01, 1.01])
-    # plt.ylabel('True Positive Rate')
-    # plt.xlabel('False Positive Rate')
-    # plt.legend(loc="lower right")
-    # plt.title(f'Receiver operating characteristic (ROC) curve {model}')
-    # plt.grid()
-    # plt.show()
+    plt.figure(figsize=(12, 8))
+    plt.plot(base_fpr, mean_tprs, 'c', alpha=0.8, label=r'Mean ROC (AUC = %0.2f $\pm$ %0.2f)' % (mean_auc, std_auc),)
+    plt.fill_between(base_fpr, tprs_lower, tprs_upper, color='c', alpha=0.2)
+    plt.plot([0, 1], [0, 1], linestyle='--', lw=2, color='k', label='Chance level', alpha=0.8)
+    plt.xlim([-0.01, 1.01])
+    plt.ylim([-0.01, 1.01])
+    plt.ylabel('True Positive Rate')
+    plt.xlabel('False Positive Rate')
+    plt.legend(loc="lower right")
+    plt.title(f'Receiver operating characteristic (ROC) curve {name}')
+    plt.grid()
+    plt.show()
 
     performance_clf.append(performance_scores)
-    print(performance_clf)
 
-    data1 = pd.DataFrame(performance_clf[0], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=1)
-    data2 = pd.DataFrame(performance_clf[1], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=2)
-    data3 = pd.DataFrame(performance_clf[2], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=3)
-    data4 = pd.DataFrame(performance_clf[3], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=4)
+pprint(performance_clf)
+data1 = pd.DataFrame(performance_clf[0], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=1)
+data2 = pd.DataFrame(performance_clf[1], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=2)
+data3 = pd.DataFrame(performance_clf[2], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=3)
+data4 = pd.DataFrame(performance_clf[3], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=4)
 
-    # data = pd.DataFrame(performance_scores, columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=1)
+cdf = pd.concat([data1, data2, data3, data4])
+mdf = pd.melt(cdf, id_vars=['Location'], var_name=['Index'])
 
-    cdf = pd.concat([data1, data2, data3, data4])
-    mdf = pd.melt(data, id_vars=['Location'], var_name=['Index'])
 
-    ax = sns.boxplot(x="Location", y="value", hue="Index", data=mdf)    
-    plt.xticks([0, 1, 2, 3], ['Logistic Regression', 'kNN', 'Random Forest', 'SVM'])
-    ax.set_xlabel('Classifier')
-    ax.set_ylabel('Performance')
-    plt.show()
+ax = sns.boxplot(x="Location", y="value", hue="Index", data=mdf)    
+plt.xticks([0, 1, 2, 3], names)
+ax.set_xlabel('Classifier')
+ax.set_ylabel('Performance')
+plt.show()
 
 
     # clsfs = [LogisticRegression(), KNeighborsClassifier(leaf_size=hyperparameters[0].get('leaf_size'), n_neighbors=hyperparameters[0].get('n_neighbors'), p=hyperparameters[0].get('p')), RandomForestClassifier(bootstrap=True, max_depth=hyperparameters[1].get('max_depth'), max_features=hyperparameters[1].get('max_features'), min_samples_leaf=hyperparameters[1].get('min_samples_leaf'), n_estimators=hyperparameters[1].get('n_estimators'), random_state=None), SVC(C=hyperparameters[2].get("C"), gamma=hyperparameters[2].get("gamma"), kernel=hyperparameters[2].get("kernel"), probability=True)]

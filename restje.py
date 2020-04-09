@@ -201,13 +201,13 @@ param_distributions = [{'penalty': ['l1', 'l2', 'elasticnet', 'none'],
                         'min_samples_leaf': randint(1, 20)}, {'C': randint(0.1, 100),
                         'gamma': ['auto', 'scale'], 'kernel': ['rbf', 'poly', 'sigmoid', 'linear']}]
 for clf, param_dist in zip(clsfs, param_distributions):
-
     accuracies = []
     auc_scores = []
     specificities = []
     sensitivities = []
     tprs = []
     aucs = []
+    performance_clf = []
     base_fpr = np.linspace(0, 1, 101)
 
     # performance_scores = pd.DataFrame()
@@ -233,7 +233,7 @@ for clf, param_dist in zip(clsfs, param_distributions):
         #models.append(model)
         prediction = model.predict(x_test)
 
-        performance_scores = pd.DataFrame()                  
+        performance_scores = pd.DataFrame()  
         auc_scores.append(roc_auc_score(y_test, prediction))
         conf_mat = confusion_matrix(y_test, prediction)
         total = sum(sum(conf_mat))
@@ -252,7 +252,7 @@ for clf, param_dist in zip(clsfs, param_distributions):
         tpr = interp(base_fpr, fpr, tpr)
         tpr[0] = 0.0
         tprs.append(tpr)
- 
+        
     tprs = np.array(tprs)
     mean_tprs = tprs.mean(axis=0)
     std = tprs.std(axis=0)
@@ -275,7 +275,23 @@ for clf, param_dist in zip(clsfs, param_distributions):
     plt.grid()
     plt.show()
 
-    performance_clf = []
+    performance_clf.append(performance_score)
+
+data1 = pd.DataFrame(performance_clf[0], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=1)
+data2 = pd.DataFrame(performance_clf[1], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=2)
+data3 = pd.DataFrame(performance_clf[2], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=3)
+data4 = pd.DataFrame(performance_clf[3], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=4)
+
+cdf = pd.concat([data1, data2, data3, data4])
+mdf = pd.melt(cdf, id_vars=['Location'], var_name=['Index'])
+
+ax = sns.boxplot(x="Location", y="value", hue="Index", data=mdf)    
+plt.xticks([0, 1, 2, 3], ['Logistic Regression', 'kNN', 'Random Forest', 'SVM'])
+ax.set_xlabel('Classifier')
+ax.set_ylabel('Performance')
+plt.show()
+
+
     clsfs = [LogisticRegression(), KNeighborsClassifier(leaf_size=hyperparameters[0].get('leaf_size'), n_neighbors=hyperparameters[0].get('n_neighbors'), p=hyperparameters[0].get('p')), RandomForestClassifier(bootstrap=True, max_depth=hyperparameters[1].get('max_depth'), max_features=hyperparameters[1].get('max_features'), min_samples_leaf=hyperparameters[1].get('min_samples_leaf'), n_estimators=hyperparameters[1].get('n_estimators'), random_state=None), SVC(C=hyperparameters[2].get("C"), gamma=hyperparameters[2].get("gamma"), kernel=hyperparameters[2].get("kernel"), probability=True)]
     clsfs_names =['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
 
@@ -283,19 +299,9 @@ for clf, param_dist in zip(clsfs, param_distributions):
         performances = cross_val_scores(x_train, y_train, hyperparameters, clf_int) 
         performance_clf.append(performances_int)
 
-    data1 = pd.DataFrame(performance_clf[0], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=1)
-    data2 = pd.DataFrame(performance_clf[1], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=2)
-    data3 = pd.DataFrame(performance_clf[2], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=3)
-    data4 = pd.DataFrame(performance_clf[3], columns=['Accuracy', 'AUC', 'Sensitivity', 'Specificity']).assign(Location=4)
 
-    cdf = pd.concat([data1, data2, data3, data4])
-    mdf = pd.melt(cdf, id_vars=['Location'], var_name=['Index'])
 
-    ax = sns.boxplot(x="Location", y="value", hue="Index", data=mdf)    
-    plt.xticks([0, 1, 2, 3], ['Logistic Regression', 'kNN', 'Random Forest', 'SVM'])
-    ax.set_xlabel('Classifier')
-    ax.set_ylabel('Performance')
-    plt.show()
+
     
         # accuracy.append(model.best_score_)
 

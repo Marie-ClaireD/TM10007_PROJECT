@@ -173,7 +173,7 @@ clf = KNeighborsClassifier()
 random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=20, cv=5, n_jobs=-1)
 model = random_search.fit(x_train, y_train)
 hp_knn = model.best_estimator_.get_params()
-
+pprint(hp_knn)
 X = features
 pca = PCA(n_components=47)
 X = pca.fit_transform(X)
@@ -297,7 +297,7 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
 
 
 fig, axes = plt.subplots(3, 8, figsize=(10, 15))
-
+title = "Learning Curves (Naive Bayes)"
 # SVM
 cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)
 estimator = SVC()
@@ -305,6 +305,7 @@ plot_learning_curve(estimator, title, X, y, axes=axes[:, 0], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 
 # SVM with hyperparameters
+
 cv = RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)
 estimator = SVC(C=hp_svm.get("C"), gamma=hp_svm.get("gamma"), kernel=hp_svm.get("kernel"), probability=True)
 plot_learning_curve(estimator, title, X, y, axes=axes[:, 1], ylim=(0, 1.5),
@@ -340,19 +341,20 @@ cv = RepeatedKFold(n_splits=2, n_repeats=10, random_state=None)
 estimator = LogisticRegression(penalty=hp_lg.get('penalty'), max_iter=hp_lg.get('max_iter'))
 plot_learning_curve(estimator, title, X, y, axes=axes[:, 5], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
-plt.show()
 
 # KNN
-title = "Learning Curves (Logistic Regression)"
+title = "Learning Curves (KNeirest Neighbors)"
 cv = RepeatedKFold(n_splits=2, n_repeats=10, random_state=None)
 estimator = KNeighborsClassifier()
 plot_learning_curve(estimator, title, X, y, axes=axes[:, 4], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 
 # KNN with hyperparameters
-title = "Learning Curves (Logistic Regression)"
+title = "Learning Curves (KNeirest Neighbors)"
 cv = RepeatedKFold(n_splits=2, n_repeats=10, random_state=None)
 estimator = KNeighborsClassifier(leaf_size=hp_knn.get('leaf_size'), n_neighbors=hp_knn.get('n_neighbors'), p=hp_knn.get('p'))
 plot_learning_curve(estimator, title, X, y, axes=axes[:, 5], ylim=(0, 1.5),
                     cv=cv, n_jobs=4)
 plt.show()
+
+# %%

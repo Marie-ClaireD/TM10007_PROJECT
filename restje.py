@@ -18,9 +18,10 @@ from sklearn.metrics import auc, roc_curve, accuracy_score, confusion_matrix, ro
 from scipy import interp
 from scipy.stats import randint
 from pprint import pprint
-from sklearn.pipeline import make_pipeline
+from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn import preprocessing
 from sklearn.model_selection import cross_val_score
+
 
 # The training set is again divided into a training and a validation set and afterwards classified using a leave one out validation and logistic regression.
 
@@ -191,28 +192,63 @@ def compute_performance(labels_test, predict_test):
 
 #%% Pipeline met Random Search
 # Het model wordt nog gefit op x_train en y_train maar dat moet nog anders
-clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
-param_distributions = [{"penalty": ['l1', 'l2', 'elasticnet', 'none'],
-                        "max_iter": randint(1, 200)}, {"leaf_size": randint(1,50), 
-                        "n_neighbors": randint(1, 20), "p": [1,2]}, {"n_estimators": randint(1, 500),
-                        "max_features": randint(1, 30), "max_depth": randint(1, 20),
-                        "min_samples_leaf": randint(1, 20)}, {"C": randint(0.1, 100),
-                        "gamma": ['auto', 'scale'], "kernel": ['rbf', 'poly', 'sigmoid', 'linear']}]
-for clf, param_dist in zip(clsfs, param_distributions):
-    random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, n_jobs=-1)
-    model = random_search.fit(x_train, y_train)
-    clf = model.best_estimator_
-    pprint(clf)
 
-    classifier_pipeline = make_pipeline(preprocessing.StandardScaler(), clf)
-    scores = cross_val_score(classifier_pipeline, features, labels, cv=5)
-    pprint(scores)
-    pprint(scores.mean())
+clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+param_distributions = [{'penalty': ['l1', 'l2', 'elasticnet', 'none'],
+                        'max_iter': randint(1, 100)}, {'leaf_size': randint(1, 50),
+                        'n_neighbors': randint(1, 20), 'p': [1, 2]}, {'n_estimators': randint(1, 500),
+                        'max_features': randint(1, 30), 'max_depth': randint(1, 20),
+                        'min_samples_leaf': randint(1, 20)}, {'C': randint(0.1, 100),
+                        'gamma': ['auto', 'scale'], 'kernel': ['rbf', 'poly', 'sigmoid', 'linear']}]
+for clf, param_dist in zip(clsfs, param_distributions):
+    performance_scores = pd.DataFrame()
+    models = []
+    accuracy = []
+    crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
+    for train_index, test_index in crss_val.split(features, labels):
+        x_train, x_test = features[train_index], features[test_index]
+        y_train, y_test = labels[train_index], labels[test_index]
+        
+        scaler = StandardScaler()
+        x_train = scaler.fit_transform(x_train)
+        x_test = scaler.transform(x_test)
+
+        pca = PCA(n_components=47)
+        pca.fit(x_train)
+        x_train = pca.transform(x_train)
+        x_test = pca.transform(x_test)
+
+        random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, scoring='accuracy', n_jobs=-1)
+        model = random_search.fit(x_train, y_train)
+        models.append(model.best_estimator_)
+        accuracy.append(model.best_score_)
+
+    performance_scores['Classifiers'] = models
+    performance_scores['Accuracy'] = accuracy
+
+    pprint(performance_scores)
+
+
+    # logistic_reg.append(models[0])
+    # pprint(logistic_reg)
+    # pprint(models)
+    
+
+        
+        # if clf == LogisticRegression():
+        #     prediction = best_clf.predict(x_test)
+        #     score = best_clf.score(x_test, y_test)
+        #     pprint(score)
+
+        
+        # scores = cross_val_score(model, x_train, y_train, cv=5)
+        # pprint(scores)
+        # pprint(scores.mean())
 
 
 # %%
 #%% Pipeline met Random Search
-# Het model wordt nog gefit op x_train en y_train maar dat moet nog anders
+
 crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
 for train_index, test_index in crss_val.split(features, labels):
     x_train, x_test = features[train_index], features[test_index]

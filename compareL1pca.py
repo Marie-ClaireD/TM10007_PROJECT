@@ -210,8 +210,7 @@ def evaluate_hyperparameters(x, y):
 
 #%% compare L1 with PCA
 # Always good to set a seed for reproducibility
-SEED = 7
-np.random.seed(SEED)
+
 from pandas import set_option
 
 from sklearn.preprocessing import StandardScaler
@@ -239,20 +238,46 @@ def GetBasedModel():
     basedModels = []
     basedModels.append(('LR'   , LogisticRegression()))
     basedModels.append(('KNN'  , KNeighborsClassifier()))
+    basedModels.append(('RF'   , RandomForestClassifier(bootstrap=True, random_state=None))) 
     basedModels.append(('SVM'  , SVC(probability=True)))
-    basedModels.append(('RF'   , RandomForestClassifier())) 
     return basedModels
+
+
+
+def GetBasedModelHyper():
+    basedModelsHyper = []
+    clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+    param_distributions = [{"penalty": ['l1', 'l2', 'elasticnet', 'none'],
+                            "max_iter": randint(1, 200)}, {"leaf_size": randint(1,50), 
+                            "n_neighbors": randint(1, 20), "p": [1,2]}, {"n_estimators": randint(1, 500),
+                            "max_features": randint(1, 30), "max_depth": randint(1, 20),
+                            "min_samples_leaf": randint(1, 20)}, {"C": randint(0.1, 100),
+                            "gamma": ['auto', 'scale'], "kernel": ['rbf', 'poly', 'sigmoid', 'linear']}]
+
+    hyperparameters_clsfs = []
+    for clf, param_dist in zip(clsfs, param_distributions):
+        random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=20, cv=5, n_jobs=-1)
+        model = random_search.fit(x_train, y_train)
+        parameters = model.best_estimator_.get_params()
+        hyperparameters_clsfs.append(parameters)
+        scores = pd.DataFrame(model.cv_results_)
+     
+
+    basedModelsHyper.append(('LR'   , LogisticRegression(penalty=hyperparameters_clsfs[0].get('penalty'), max_iter=hyperparameters_clsfs[0].get('max_iter'))))
+    basedModelsHyper.append(('KNN'  , KNeighborsClassifier(leaf_size=hyperparameters_clsfs[1].get('leaf_size'), n_neighbors=hyperparameters_clsfs[1].get('n_neighbors'), p=hyperparameters_clsfs[1].get('p'))))
+    basedModelsHyper.append(('RF'   , RandomForestClassifier(n_estimators=hyperparameters_clsfs[2].get('n_estimators'),max_features=hyperparameters_clsfs[2].get('max_features'),max_depth=hyperparameters_clsfs[2].get('max_depth'),min_samples_leaf=hyperparameters_clsfs[2].get('min_samples_leaf'),bootstrap=True, random_state=None))) 
+    basedModelsHyper.append(('SVM'  , SVC(C=hyperparameters_clsfs[3].get('C'),gamma=hyperparameters_clsfs[3].get('gamma'),kernel=hyperparameters_clsfs[3].get('kernel'),probability=True)))
+    return basedModelsHyper
+
+
 
 def BasedLine2(X_train, y_train,models):
     # Test options and evaluation metric
-    num_folds = 10
-    scoring = 'accuracy'
-
     results = []
     names = []
     for name, model in models:
-        kfold = StratifiedKFold(n_splits=num_folds, random_state=SEED)
-        cv_results = cross_val_score(model, X_train, y_train, cv=kfold, scoring=scoring)
+        kfold = RepeatedStratifiedKFold(n_splits=5, random_state=None)
+        cv_results = cross_val_score(model, X_train, y_train, cv=kfold, scoring='accuracy')
         results.append(cv_results)
         names.append(name)
         msg = "%s: %f (%f)" % (name, cv_results.mean(), cv_results.std())
@@ -272,11 +297,131 @@ def ScoreDataFrame(names,results):
     scoreDataFrame = pd.DataFrame({'Model':names, 'Accuracy score': scores})
     return scoreDataFrame
 
+
+
+#%% Zonder iets: BaseLine
+x_train, x_test = scale_data(x_train, x_test)
 models = GetBasedModel()
 names,results = BasedLine2(x_train, y_train,models)
 basedLineScore = ScoreDataFrame(names, results)
 
-#%% PCA
+
+
+
+
+#%% PCA ZONDER HYPERPARAMETERS
+from sklearn.model_selection import RepeatedStratifiedKFold
+clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
+param_distributions = [{},{},{},{}]
+
+performance_clf = []
+
+for clf, name, param_dist in zip(clsfs, names, param_distributions):
+    accuracies = []
+    auc_scores = []
+    specificities = []
+    sensitivities = []
+    tprs = []
+    aucs = []
+    base_fpr = np.linspace(0, 1, 101)
+    crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
+    for train_index, test_index in crss_val.split(features, labels):
+        x_train, x_test = features[train_index], features[test_index]
+        y_train, y_test = labels[train_index], labels[test_index]
+            # Scale data with Standard Scalar
+        x_train, x_test = scale_data(x_train, x_test)
+
+        # Apply PCA to data
+        x_train, x_test = pca_data(x_train, x_test)
+
+models = GetBasedModel()
+names,results = BasedLine2(x_train, y_train,models)
+NoHP_PCA = ScoreDataFrame(names, results)
+compareModels = pd.concat([basedLineScore,
+                           NoHP_PCA
+                          ], axis=1)
+compareModels
+
+
+#%% L1 ZONDER HYPERPARAMETERS
+from sklearn.model_selection import RepeatedStratifiedKFold
+clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
+param_distributions = [{},{},{},{}]
+
+performance_clf = []
+
+for clf, name, param_dist in zip(clsfs, names, param_distributions):
+    accuracies = []
+    auc_scores = []
+    specificities = []
+    sensitivities = []
+    tprs = []
+    aucs = []
+    base_fpr = np.linspace(0, 1, 101)
+    crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
+    for train_index, test_index in crss_val.split(features, labels):
+        x_train, x_test = features[train_index], features[test_index]
+        y_train, y_test = labels[train_index], labels[test_index]
+            # Scale data with Standard Scalar
+        x_train, x_test = scale_data(x_train, x_test)
+
+        # Apply PCA to data
+        x_train, x_test = get_Lasso(x_train,y_train, x_test, data)
+
+models = GetBasedModel()
+names,results = BasedLine2(x_train, y_train,models)
+NoHP_L1 = ScoreDataFrame(names, results)
+compareModels = pd.concat([basedLineScore,
+                           basedLineScoreHP, NoHP_L1
+                          ], axis=1)
+compareModels
+
+
+#%% Zonder iets met hyperparameters: BaselineHP
+
+from sklearn.model_selection import RepeatedStratifiedKFold
+clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
+param_distributions = [{'penalty': ['l1', 'l2', 'elasticnet', 'none'],
+                        'max_iter': randint(1, 100)}, {'leaf_size': randint(1, 50),
+                        'n_neighbors': randint(1, 20), 'p': [1, 2]}, {'n_estimators': randint(1, 500),
+                        'max_features': randint(1, 30), 'max_depth': randint(1, 20),
+                        'min_samples_leaf': randint(1, 20)}, {'C': randint(0.1, 100),
+                        'gamma': ['auto', 'scale'], 'kernel': ['rbf', 'poly', 'sigmoid', 'linear']}]
+
+performance_clf = []
+
+for clf, name, param_dist in zip(clsfs, names, param_distributions):
+    accuracies = []
+    auc_scores = []
+    specificities = []
+    sensitivities = []
+    tprs = []
+    aucs = []
+    base_fpr = np.linspace(0, 1, 101)
+    crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
+    for train_index, test_index in crss_val.split(features, labels):
+        x_train, x_test = features[train_index], features[test_index]
+        y_train, y_test = labels[train_index], labels[test_index]
+
+        # Scale data with Standard Scaler
+        x_train, x_test = scale_data(x_train, x_test)
+models = GetBasedModelHyper()
+names,results = BasedLine2(x_train, y_train,models)
+HP_baseline = ScoreDataFrame(names, results)
+compareModels = pd.concat([basedLineScore,
+                           basedLineScoreHP, NoHP_L1, HP_baseline
+                          ], axis=1)
+compareModels
+
+
+
+
+
+
+#%% PCA with Hyperparameters
 from sklearn.model_selection import RepeatedStratifiedKFold
 clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
 names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
@@ -307,16 +452,16 @@ for clf, name, param_dist in zip(clsfs, names, param_distributions):
 
         # Apply PCA to data
         x_train, x_test = pca_data(x_train, x_test)
-
-#%%
-models = GetBasedModel()
+models = GetBasedModelHyper()
 names,results = BasedLine2(x_train, y_train,models)
-PCAscore = ScoreDataFrame(names, results)
+HP_PCA = ScoreDataFrame(names, results)
 compareModels = pd.concat([basedLineScore,
-                           PCAscore
+                           basedLineScoreHP, NoHP_L1, HP_baseline, HP_PCA
                           ], axis=1)
 compareModels
-#%%
+
+
+#%% L1 with Hyperparameters
 clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
 names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
 param_distributions = [{'penalty': ['l1', 'l2', 'elasticnet', 'none'],
@@ -347,11 +492,19 @@ for clf, name, param_dist in zip(clsfs, names, param_distributions):
         # Apply PCA to data
         x_train, x_test = get_Lasso(x_train, y_train, x_test, data)
 
-models = GetBasedModel()
-names,results = BasedLine2(x_train, y_train,models)
-LassoScore = ScoreDataFrame(names, results)
+models = GetBasedModelHyper()
+names,results = BasedLine2(x_train, y_train, models)
+HP_L1 = ScoreDataFrame(names, results)
 compareModels = pd.concat([basedLineScore,
-                           PCAscore, LassoScore
+                           basedLineScoreHP, NoHP_L1, HP_baseline, HP_PCA, HP_L1
                           ], axis=1)
 compareModels
+
+# %%
+
+compareModels.loc[-1] = ['','No HP, baseline','', 'No HP, PCA','', 'No HP, L1','', 'HP, baseline', '','HP, PCA', '','HP, L1']
+compareModels.index = compareModels.index + 1
+compareModels.sort_index(inplace=True)
+compareModels
+
 # %%

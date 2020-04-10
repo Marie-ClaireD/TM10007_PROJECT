@@ -282,12 +282,11 @@ def ScoreDataFrame(results):
 
 clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
 names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
-param_distributions = [{'penalty': ['l1', 'l2', 'elasticnet', 'none'],
-                        'max_iter': randint(1, 100)}, {'leaf_size': randint(1, 50),
+param_distributions = [{}, {'leaf_size': randint(1, 50),
                         'n_neighbors': randint(1, 20), 'p': [1, 2]}, {'n_estimators': randint(1, 500),
                         'max_features': randint(1, 30), 'max_depth': randint(1, 20),
                         'min_samples_leaf': randint(1, 20)}, {'C': randint(0.1, 100),
-                        'gamma': ['auto', 'scale'], 'kernel': ['rbf', 'poly', 'sigmoid', 'linear']}]
+                        'gamma': ['auto', 'scale']}]
 
 model_clf = []
 for clf, name, param_dist in zip(clsfs, names, param_distributions):
@@ -325,7 +324,8 @@ for clf, name, param_dist in zip(clsfs, names, param_distributions):
         models = GetBasedModel()
         results = BasedLine2(x_train, y_train,models)
         basedLineScore = ScoreDataFrame(results)
-
+        compareModels = pd.concat([basedLineScore], axis=1)
+        print(compareModels)
         # models = GetBasedModelHyper(model_clf)
         #results = BasedLine2(x_train, y_train,models)
     results_rs = mean(results_rs)

@@ -1,4 +1,4 @@
-
+#%%
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
@@ -12,7 +12,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import LeaveOneOut 
 from sklearn.model_selection import RepeatedKFold
-from sklearn.model_selection import StratifiedKFold, learning_curve, ShuffleSplit
+from sklearn.model_selection import StratifiedKFold, learning_curve, ShuffleSplit, StratifiedShuffleSplit
 from sklearn.feature_selection import mutual_info_classif
 from sklearn.decomposition import PCA
 from sklearn.neighbors import KNeighborsClassifier
@@ -173,9 +173,9 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
 
     train_sizes, train_scores, test_scores, fit_times, _ = \
         learning_curve(estimator, X, y, cv=cv, n_jobs=n_jobs,
-                       train_sizes=train_sizes)
-                       #return_times=True)
-    #print(train_sizes)
+                       train_sizes=train_sizes,
+                       return_times=True)
+ 
     train_scores_mean = np.mean(train_scores, axis=1)
     train_scores_std = np.std(train_scores, axis=1)
     test_scores_mean = np.mean(test_scores, axis=1)
@@ -197,30 +197,12 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
                  label="Cross-validation score")
     axes[0].legend(loc="best")
 
-    # Plot n_samples vs fit_times
-    axes[1].grid()
-    axes[1].plot(train_sizes, fit_times_mean, 'o-')
-    axes[1].fill_between(train_sizes, fit_times_mean - fit_times_std,
-                         fit_times_mean + fit_times_std, alpha=0.1)
-    axes[1].set_xlabel("Training examples")
-    axes[1].set_ylabel("fit_times")
-    axes[1].set_title("Scalability of the model")
-
-    # Plot fit_time vs score
-    axes[2].grid()
-    axes[2].plot(fit_times_mean, test_scores_mean, 'o-')
-    axes[2].fill_between(fit_times_mean, test_scores_mean - test_scores_std,
-                         test_scores_mean + test_scores_std, alpha=0.1)
-    axes[2].set_xlabel("fit_times")
-    axes[2].set_ylabel("Score")
-    axes[2].set_title("Performance of the model")
-
     return plt
 
 clsfs = [KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
 names = ['kNN', 'Random Forest', 'SVM']
 param_distributions = [{'leaf_size': randint(1, 50),
-                        'n_neighbors': randint(1, 20), 'p': [1, 2]}, {'n_estimators': randint(1, 500),
+                        'n_neighbors': randint(1, 6), 'p': [1, 2]}, {'n_estimators': randint(1, 500),
                         'max_features': randint(1, 30), 'max_depth': randint(1, 20),
                         'min_samples_leaf': randint(1, 20)}, {'C': randint(0.1, 100),
                         'gamma': ['auto', 'scale'], 'kernel': ['rbf', 'poly', 'sigmoid', 'linear']}]
@@ -228,16 +210,17 @@ param_distributions = [{'leaf_size': randint(1, 50),
 performance_clf = []
 
 X = features
-pca = PCA(n_components=47)
-X = pca.fit_transform(X)
+#pca = PCA(n_components=47)
+#X = pca.fit_transform(X)
 y = labels
 
 highest_scored_model = []
-cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=10, random_state=None) 
+
+cv = StratifiedShuffleSplit(n_splits=5,test_size=0.2) 
 for clf, name, param_dist in zip(clsfs, names, param_distributions):
     best_models = {}
 #crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
-#for train_index, test_index in crss_val.split(features, labels):
+#for train_index, test_index in crss_val.split(features, labels)
 #    x_train, x_test = features[train_index], features[test_index]
 #    y_train, y_test = labels[train_index], labels[test_index]
     
@@ -259,7 +242,7 @@ for clf, name, param_dist in zip(clsfs, names, param_distributions):
     best_result = model.best_score_
     best_models[best_model] = best_result
     highest_scored_model = nlargest(1, best_models, key=best_models.get)
-    #print(highest_scored_model)
+    print(highest_scored_model)
     plot_learning_curve(highest_scored_model[0], "Learning Curve", X, y, axes=None, ylim=None, cv=cv, n_jobs=None, train_sizes=np.linspace(0.1,1,5))
 
 #highest_scored.append(highest_scored_model[0])
@@ -276,3 +259,6 @@ for clf, name, param_dist in zip(clsfs, names, param_distributions):
         #print(best_models)
 
             #print(best_model)
+
+
+# %%

@@ -233,6 +233,7 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import ExtraTreesClassifier
+from statistics import mean
 
 def GetBasedModel():
     basedModels = []
@@ -243,7 +244,6 @@ def GetBasedModel():
     return basedModels
 
 
-
 def GetBasedModelHyper(model_clf):
     basedModelsHyper = []
     for model in model_clf:
@@ -252,18 +252,19 @@ def GetBasedModelHyper(model_clf):
     return basedModelsHyper
 
 
-# def BasedLine2(X_train, y_train, models):
-#     # Test options and evaluation metric
-#     results = []
+def BasedLine2(X_train, y_train, models):
+    # Test options and evaluation metric
+    results = []
  
-#     for model in models:
-#         kfold = RepeatedStratifiedKFold(n_splits=5, random_state=None)
-#         cv_results = cross_val_score(model, X_train, y_train, cv=kfold, scoring='accuracy')
-#         results.append(cv_results)
-#         msg = " %f (%f)" % ( cv_results.mean(), cv_results.std())
-#         print(msg)
+    for model in models:
+        kfold = RepeatedStratifiedKFold(n_splits=5, random_state=None)
+        cv_results = cross_val_score(model, X_train, y_train, cv=kfold, scoring='accuracy')
+        results.append(cv_results)
+        # msg = " %f (%f)" % (cv_results.mean(), cv_results.std())
+        # print(msg)
         
-#     return results
+    return results
+
 def ScoreDataFrame(results):
     def floatingDecimals(f_val, dec=3):
         prc = "{:."+str(dec)+"f}" 
@@ -291,9 +292,8 @@ param_distributions = [{'penalty': ['l1', 'l2', 'elasticnet', 'none'],
 model_clf = []
 for clf, name, param_dist in zip(clsfs, names, param_distributions):
     crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
-    results = []
+    results_rs = []
  
-    
     for train_index, test_index in crss_val.split(features, labels):
 
         x_train, x_test = features[train_index], features[test_index]
@@ -318,19 +318,18 @@ for clf, name, param_dist in zip(clsfs, names, param_distributions):
         random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, scoring='accuracy', n_jobs=-1)
         model_randomsearch = random_search.fit(x_train, y_train)
         model = model_randomsearch.best_estimator_
-        result = model_randomsearch.best_score_
-        results.append(result)
-        msg = " %f (%f)" % ( model_randomsearch.cv_results_.mean(), model_randomsearch.cv_results_.std())
-        print(msg)
+        result_rs = model_randomsearch.best_score_
+        results_rs.append(result_rs)
 
         model_clf.append(model)
         models = GetBasedModel()
-        #results = BasedLine2(x_train, y_train,models)
+        results = BasedLine2(x_train, y_train,models)
         basedLineScore = ScoreDataFrame(results)
 
-        models = GetBasedModelHyper(model_clf)
+        # models = GetBasedModelHyper(model_clf)
         #results = BasedLine2(x_train, y_train,models)
-        HP_baseline = ScoreDataFrame(results)
+    results_rs = mean(results_rs)
+    HP_baseline = ScoreDataFrame(results_rs)
     print(HP_baseline)
     compareModels = pd.concat([basedLineScore, HP_baseline], axis=1)
     print(compareModels)

@@ -236,55 +236,35 @@ from sklearn.ensemble import ExtraTreesClassifier
 
 def GetBasedModel():
     basedModels = []
-    basedModels.append(('LR'   , LogisticRegression()))
-    basedModels.append(('KNN'  , KNeighborsClassifier()))
-    basedModels.append(('RF'   , RandomForestClassifier(bootstrap=True, random_state=None))) 
-    basedModels.append(('SVM'  , SVC(probability=True)))
+    basedModels.append((LogisticRegression()))
+    basedModels.append((KNeighborsClassifier()))
+    basedModels.append((RandomForestClassifier(bootstrap=True, random_state=None))) 
+    basedModels.append((SVC(probability=True)))
     return basedModels
 
 
 
-def GetBasedModelHyper():
+def GetBasedModelHyper(model_clf):
     basedModelsHyper = []
-    clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
-    param_distributions = [{"penalty": ['l1', 'l2', 'elasticnet', 'none'],
-                            "max_iter": randint(1, 200)}, {"leaf_size": randint(1,50), 
-                            "n_neighbors": randint(1, 20), "p": [1,2]}, {"n_estimators": randint(1, 500),
-                            "max_features": randint(1, 30), "max_depth": randint(1, 20),
-                            "min_samples_leaf": randint(1, 20)}, {"C": randint(0.1, 100),
-                            "gamma": ['auto', 'scale'], "kernel": ['rbf', 'poly', 'sigmoid', 'linear']}]
+    for model in model_clf:
+        basedModelsHyper.append(model)
 
-    hyperparameters_clsfs = []
-    for clf, param_dist in zip(clsfs, param_distributions):
-        random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=20, cv=5, n_jobs=-1)
-        model = random_search.fit(x_train, y_train)
-        parameters = model.best_estimator_.get_params()
-        hyperparameters_clsfs.append(parameters)
-        scores = pd.DataFrame(model.cv_results_)
-     
-
-    basedModelsHyper.append(('LR'   , LogisticRegression(penalty=hyperparameters_clsfs[0].get('penalty'), max_iter=hyperparameters_clsfs[0].get('max_iter'))))
-    basedModelsHyper.append(('KNN'  , KNeighborsClassifier(leaf_size=hyperparameters_clsfs[1].get('leaf_size'), n_neighbors=hyperparameters_clsfs[1].get('n_neighbors'), p=hyperparameters_clsfs[1].get('p'))))
-    basedModelsHyper.append(('RF'   , RandomForestClassifier(n_estimators=hyperparameters_clsfs[2].get('n_estimators'),max_features=hyperparameters_clsfs[2].get('max_features'),max_depth=hyperparameters_clsfs[2].get('max_depth'),min_samples_leaf=hyperparameters_clsfs[2].get('min_samples_leaf'),bootstrap=True, random_state=None))) 
-    basedModelsHyper.append(('SVM'  , SVC(C=hyperparameters_clsfs[3].get('C'),gamma=hyperparameters_clsfs[3].get('gamma'),kernel=hyperparameters_clsfs[3].get('kernel'),probability=True)))
     return basedModelsHyper
 
 
-
-def BasedLine2(X_train, y_train,models):
-    # Test options and evaluation metric
-    results = []
-    names = []
-    for name, model in models:
-        kfold = RepeatedStratifiedKFold(n_splits=5, random_state=None)
-        cv_results = cross_val_score(model, X_train, y_train, cv=kfold, scoring='accuracy')
-        results.append(cv_results)
-        names.append(name)
-        msg = "%s: %f (%f)" % (name, cv_results.mean(), cv_results.std())
-        print(msg)
+# def BasedLine2(X_train, y_train, models):
+#     # Test options and evaluation metric
+#     results = []
+ 
+#     for model in models:
+#         kfold = RepeatedStratifiedKFold(n_splits=5, random_state=None)
+#         cv_results = cross_val_score(model, X_train, y_train, cv=kfold, scoring='accuracy')
+#         results.append(cv_results)
+#         msg = " %f (%f)" % ( cv_results.mean(), cv_results.std())
+#         print(msg)
         
-    return names, results
-def ScoreDataFrame(names,results):
+#     return results
+def ScoreDataFrame(results):
     def floatingDecimals(f_val, dec=3):
         prc = "{:."+str(dec)+"f}" 
     
@@ -294,8 +274,85 @@ def ScoreDataFrame(names,results):
     for r in results:
         scores.append(floatingDecimals(r.mean(),4))
 
-    scoreDataFrame = pd.DataFrame({'Model':names, 'Accuracy score': scores})
+    scoreDataFrame = pd.DataFrame({'Accuracy score': scores})
     return scoreDataFrame
+
+#%% Assignment
+
+clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
+param_distributions = [{'penalty': ['l1', 'l2', 'elasticnet', 'none'],
+                        'max_iter': randint(1, 100)}, {'leaf_size': randint(1, 50),
+                        'n_neighbors': randint(1, 20), 'p': [1, 2]}, {'n_estimators': randint(1, 500),
+                        'max_features': randint(1, 30), 'max_depth': randint(1, 20),
+                        'min_samples_leaf': randint(1, 20)}, {'C': randint(0.1, 100),
+                        'gamma': ['auto', 'scale'], 'kernel': ['rbf', 'poly', 'sigmoid', 'linear']}]
+
+model_clf = []
+for clf, name, param_dist in zip(clsfs, names, param_distributions):
+    crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
+    results = []
+ 
+    
+    for train_index, test_index in crss_val.split(features, labels):
+
+        x_train, x_test = features[train_index], features[test_index]
+        y_train, y_test = labels[train_index], labels[test_index]
+        
+        # Scale data with Standard Scalar
+        x_train, x_test = scale_data(x_train, x_test)
+
+        
+        # # Apply PCA to data
+        # x1_train, x1_test = apply_pca(x_train, x_test)
+        # models = GetBasedModel()
+        # names,results = BasedLine2(x1_train, y_train,models)
+        # NoHP_PCA = ScoreDataFrame(names, results)
+
+
+        # # Apply L1 to data
+        # alpha = 0.0335  
+        # x2_train, x2_test = apply_lasso(x_train, y_train, x_test, data, alpha)
+
+        #RandomSearch for optimalization Hyperparameters
+        random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, scoring='accuracy', n_jobs=-1)
+        model_randomsearch = random_search.fit(x_train, y_train)
+        model = model_randomsearch.best_estimator_
+        result = model_randomsearch.best_score_
+        results.append(result)
+        msg = " %f (%f)" % ( model_randomsearch.cv_results_.mean(), model_randomsearch.cv_results_.std())
+        print(msg)
+
+        model_clf.append(model)
+        models = GetBasedModel()
+        #results = BasedLine2(x_train, y_train,models)
+        basedLineScore = ScoreDataFrame(results)
+
+        models = GetBasedModelHyper(model_clf)
+        #results = BasedLine2(x_train, y_train,models)
+        HP_baseline = ScoreDataFrame(results)
+    print(HP_baseline)
+    compareModels = pd.concat([basedLineScore, HP_baseline], axis=1)
+    print(compareModels)
+            
+   
+
+
+# models = GetBasedModel()
+# names,results = BasedLine2(x1_train, y_train,models)
+# NoHP_PCA = ScoreDataFrame(names, results)
+
+# models = GetBasedModelHyper()
+# names,results = BasedLine2(x_train, y_train,models)
+# NoHP_PCA = ScoreDataFrame(names, results)
+
+
+
+
+
+
+
+
 
 
 

@@ -1,4 +1,3 @@
-
 #%% Import Modules
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -314,18 +313,26 @@ def create_boxplot(performance_clf, names):
     return
 
 #%% 
+# Classifier Pipeline PCA
+
 clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
 names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
-param_distributions = [{'penalty': ['l1', 'l2', 'elasticnet', 'none'],
-                        'max_iter': randint(1, 100)}, {'leaf_size': randint(1, 50),
-                        'n_neighbors': randint(1, 20), 'p': [1, 2]}, {'n_estimators': randint(1, 500),
-                        'max_features': randint(1, 30), 'max_depth': randint(1, 20),
-                        'min_samples_leaf': randint(1, 20)}, {'C': randint(0.1, 100),
-                        'gamma': ['auto', 'scale'], 'kernel': ['rbf', 'poly', 'sigmoid', 'linear']}]
+# param_distributions = [{'penalty': ['l1', 'l2', 'elasticnet', 'none'],
+#                         'max_iter': randint(1, 100)}, {'leaf_size': randint(1, 50),
+#                         'n_neighbors': randint(1, 20), 'p': [1, 2]}, {'n_estimators': randint(1, 500),
+#                         'max_features': randint(1, 30), 'max_depth': randint(1, 20),
+#                         'min_samples_leaf': randint(1, 20)}, {'C': randint(0.1, 100),
+#                         'gamma': ['auto', 'scale'], 'kernel': ['rbf', 'poly', 'sigmoid', 'linear']}]
+param_grids = [{'penalty': ['l1', 'l2', 'elasticnet', 'none'],
+               'max_iter': [1, 100]}, {'n_neighbors': [1, 20]},  
+              {'n_estimators': [1, 500], 'max_features': [1, 30], 
+               'max_depth': [1, 20], 'min_samples_leaf': [1, 20]}, 
+              {'C': [0.1, 100], 'gamma': ['auto', 'scale'], 
+               'kernel': ['rbf', 'poly', 'sigmoid', 'linear']}]
 
 performance_clf = []
 
-for clf, name, param_dist in zip(clsfs, names, param_distributions):
+for clf, name, param_grid in zip(clsfs, names, param_grids):
     accuracies = []
     auc_scores = []
     specificities = []
@@ -345,23 +352,45 @@ for clf, name, param_dist in zip(clsfs, names, param_distributions):
         x_train, x_test = pca_data(x_train, x_test)
 
         # RandomSearch for optimalization Hyperparameters
-        random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, scoring='accuracy', n_jobs=-1)
-        model = random_search.fit(x_train, y_train)
+        # random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5,scoring='accuracy', n_jobs=-1)
+        # model = random_search.fit(x_train, y_train)
+        grid_search = GridSearchCV(clf, param_grid=param_grid, cv=5, scoring='accuracy', n_jobs=-1)
+        model = grid_search.fit(x_train, y_train)
         model = model.best_estimator_
-        #models.append(model)
+        base_model = clf.fit(x_train, y_train)
+
+        # Evaluate performance on validation set
+        base_scores = cross_val_score(base_model, x_train, y_train, cv=5, scoring='accuracy')
+        pprint(f'Accuracy {name} classifier:') 
+        pprint(f'{base_scores}')
+        pprint(f'With a mean accuracy of: {base_scores.mean()}')
+        scores = cross_val_score(model, x_train, y_train, cv=5, scoring='accuracy')
+        pprint(f'Accuracy {name} classifier:') 
+        pprint(f'{scores}')
+        pprint(f'With a mean accuracy of: {scores.mean()}')
+
+        # Evaluate performance Hyperparameters on test set
+    #     baseline_performance, tprs, aucs = performance(base_model, x_test, y_test)
+    #     performance_scores, tprs, aucs = performance(model, x_test, y_test)
         
-        # Evaluate performance on test data
-        performance_scores, tprs, aucs = performance(model, x_test, y_test)
-    performance_scores.loc['mean'] = performance_scores.mean()
-    print(f'Performance {name} Classifier:')
-    print(f'{performance_scores}')
+    # base_accuracy = baseline_performance['Accuracy'].mean()
+    # random_accuracy = performance_scores['Accuracy'].mean()
+    # pprint(f'Performance {name} Classifier at baseline:')
+    # pprint(f'{base_accuracy}')
+    # pprint(f'Performance {name} Classifier with Hyperparameters:')
+    # pprint(f'{random_accuracy}')
+    # pprint(f'Improvement of {100 * (random_accuracy - base_accuracy) / base_accuracy}%')
+
+    # performance_scores.loc['mean'] = performance_scores.mean()
+    # print(f'Performance {name} Classifier:')
+    # print(f'{performance_scores}')
     
-    # Plot ROC curves
-    plot_ROC(tprs, aucs, name)
+#     # Plot ROC curves
+#     plot_ROC(tprs, aucs, name)
 
-    performance_clf.append(performance_scores)
+#     performance_clf.append(performance_scores)
 
-# Create boxplot
-create_boxplot(performance_clf, names)
+# # Create boxplot
+# create_boxplot(performance_clf, names)
 
 # %%

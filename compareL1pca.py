@@ -97,7 +97,7 @@ def scale_data(x, y):
     x_test = scaler.transform(y)
     return x_train, x_test
 
-def get_Lasso(x1, y , x2, data):
+def apply_lasso(x1, y , x2, data):
     """
     Apply L1 regularization with alpha = 0.035 to data
     """
@@ -116,7 +116,7 @@ def get_Lasso(x1, y , x2, data):
     return x_train, x_test
 
 
-def pca_data(x, y):
+def apply_pca(x, y):
     """Apply PCA with 47 components to data"""
 
     pca = PCA(n_components=47)
@@ -278,21 +278,20 @@ def ScoreDataFrame(results):
     scoreDataFrame = pd.DataFrame({'Accuracy score': scores})
     return scoreDataFrame
 
-#%% Assignment
+#%% Assignment without hyperparameters
 
 clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
 names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
-param_distributions = [{}, {'leaf_size': randint(1, 50),
-                        'n_neighbors': randint(1, 20), 'p': [1, 2]}, {'n_estimators': randint(1, 500),
-                        'max_features': randint(1, 30), 'max_depth': randint(1, 20),
-                        'min_samples_leaf': randint(1, 20)}, {'C': randint(0.1, 100),
-                        'gamma': ['auto', 'scale']}]
+param_distributions = [{}, {}, {}, {}]
 
-model_clf = []
+baseline_accuracy = []
+baseline_PCA = []
+baseline_L1 = []
 for clf, name, param_dist in zip(clsfs, names, param_distributions):
     crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
     results_rs = []
- 
+    results_PCA = []
+    results_L1 = []
     for train_index, test_index in crss_val.split(features, labels):
 
         x_train, x_test = features[train_index], features[test_index]
@@ -303,7 +302,96 @@ for clf, name, param_dist in zip(clsfs, names, param_distributions):
 
         
         # # Apply PCA to data
-        # x1_train, x1_test = apply_pca(x_train, x_test)
+        x1_train, x1_test = apply_pca(x_train, x_test)
+        # models = GetBasedModel()
+        # names,results = BasedLine2(x1_train, y_train,models)
+        # NoHP_PCA = ScoreDataFrame(names, results)
+
+
+        # # Apply L1 to data
+        
+        x2_train, x2_test = apply_lasso(x_train, y_train, x_test, data)
+
+        #RandomSearch for optimalization Hyperparameters
+        random_search1 = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, scoring='accuracy', n_jobs=-1)
+        model_randomsearch_base = random_search1.fit(x_train, y_train)
+        random_search2 = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, scoring='accuracy', n_jobs=-1)
+        model_randomsearch_PCA = random_search2.fit(x1_train, y_train)
+        random_search3 = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, scoring='accuracy', n_jobs=-1)
+        model_randomsearch_L1 = random_search3.fit(x2_train, y_train)
+        # model = model_randomsearch.best_estimator_
+        # model_PCA = model_randomsearch_PCA.best_estimator_
+        # model_L1 = model_randomsearch_L1.best_estimator_
+        result_rs = model_randomsearch_base.best_score_
+        results_rs.append(result_rs)
+        result_PCA = model_randomsearch_PCA.best_score_
+        results_PCA.append(result_PCA)
+        result_L1 = model_randomsearch_L1.best_score_
+        results_L1.append(result_L1)
+
+    #results_baseline = mean(results_baseline)
+    # print(results_baseline)
+    #basedLineScore = pd.DataFrame()
+    #basedLineScore.append(results_baseline)
+    #compareModels = pd.concat([basedLineScore], axis=1)
+    #print(compareModels)
+        # models = GetBasedModelHyper(model_clf)
+        #results = BasedLine2(x_train, y_train,models)
+    results_rs = mean(results_rs)
+    baseline_accuracy.append(results_rs)
+    results_PCA = mean(results_PCA)
+    baseline_PCA.append(results_PCA)
+    results_L1 = mean(results_L1)
+    baseline_L1.append(results_L1)
+base_accuracy = pd.DataFrame()
+base_accuracy['Accuracy'] = baseline_accuracy
+print(base_accuracy)
+base_PCA = pd.DataFrame()
+base_PCA['Accuracy'] = baseline_PCA
+print(base_PCA)
+base_L1 = pd.DataFrame()
+base_L1['Accuracy'] = baseline_L1
+print(base_L1)
+compareModels = pd.concat([base_accuracy, base_PCA, base_L1], axis=1)
+print(compareModels)
+
+# models = GetBasedModel()
+# names,results = BasedLine2(x1_train, y_train,models)
+# NoHP_PCA = ScoreDataFrame(names, results)
+
+# models = GetBasedModelHyper()
+# names,results = BasedLine2(x_train, y_train,models)
+# NoHP_PCA = ScoreDataFrame(names, results)
+
+
+#%% Assignment with hyperparameters
+
+clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
+param_distributions = [{}, {'leaf_size': randint(1, 50),
+                        'n_neighbors': randint(1, 20), 'p': [1, 2]}, {'n_estimators': randint(1, 500),
+                        'max_features': randint(1, 30), 'max_depth': randint(1, 20),
+                        'min_samples_leaf': randint(1, 20)}, {'C': randint(0.1, 100),
+                        'gamma': ['auto', 'scale'], 'kernel': ['rbf', 'poly', 'sigmoid', 'linear']}]
+HP_accuracy = []
+HP_PCA = []
+HP_L1 = []
+for clf, name, param_dist in zip(clsfs, names, param_distributions):
+    crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
+    results_rs = []
+    results_PCA = []
+    results_L1 = []
+    for train_index, test_index in crss_val.split(features, labels):
+
+        x_train, x_test = features[train_index], features[test_index]
+        y_train, y_test = labels[train_index], labels[test_index]
+        
+        # Scale data with Standard Scalar
+        x_train, x_test = scale_data(x_train, x_test)
+
+        
+        # # Apply PCA to data
+        x1_train, x1_test = apply_pca(x_train, x_test)
         # models = GetBasedModel()
         # names,results = BasedLine2(x1_train, y_train,models)
         # NoHP_PCA = ScoreDataFrame(names, results)
@@ -311,28 +399,55 @@ for clf, name, param_dist in zip(clsfs, names, param_distributions):
 
         # # Apply L1 to data
         # alpha = 0.0335  
-        # x2_train, x2_test = apply_lasso(x_train, y_train, x_test, data, alpha)
+        x2_train, x2_test = apply_lasso(x_train, y_train, x_test, data)
 
         #RandomSearch for optimalization Hyperparameters
-        random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, scoring='accuracy', n_jobs=-1)
-        model_randomsearch = random_search.fit(x_train, y_train)
-        model = model_randomsearch.best_estimator_
-        result_rs = model_randomsearch.best_score_
+        random_search1 = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, scoring='accuracy', n_jobs=-1)
+        model_randomsearch_base = random_search1.fit(x_train, y_train)
+        random_search2 = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, scoring='accuracy', n_jobs=-1)
+        model_randomsearch_PCA = random_search2.fit(x1_train, y_train)
+        random_search3 = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, scoring='accuracy', n_jobs=-1)
+        model_randomsearch_L1 = random_search3.fit(x2_train, y_train)
+        # model = model_randomsearch.best_estimator_
+        # model_PCA = model_randomsearch_PCA.best_estimator_
+        # model_L1 = model_randomsearch_L1.best_estimator_
+        result_rs = model_randomsearch_base.best_score_
         results_rs.append(result_rs)
+        result_PCA = model_randomsearch_PCA.best_score_
+        results_PCA.append(result_PCA)
+        result_L1 = model_randomsearch_L1.best_score_
+        results_L1.append(result_L1)
 
-        model_clf.append(model)
-        models = GetBasedModel()
-        results = BasedLine2(x_train, y_train,models)
-        basedLineScore = ScoreDataFrame(results)
-        compareModels = pd.concat([basedLineScore], axis=1)
-        print(compareModels)
+    #results_baseline = mean(results_baseline)
+    # print(results_baseline)
+    #basedLineScore = pd.DataFrame()
+    #basedLineScore.append(results_baseline)
+    #compareModels = pd.concat([basedLineScore], axis=1)
+    #print(compareModels)
         # models = GetBasedModelHyper(model_clf)
         #results = BasedLine2(x_train, y_train,models)
     results_rs = mean(results_rs)
-    HP_baseline = ScoreDataFrame(results_rs)
-    print(HP_baseline)
-    compareModels = pd.concat([basedLineScore, HP_baseline], axis=1)
-    print(compareModels)
+    HP_accuracy.append(results_rs)
+    results_PCA = mean(results_PCA)
+    HP_PCA.append(results_PCA)
+    results_L1 = mean(results_L1)
+    HP_L1.append(results_L1)
+HP_acc = pd.DataFrame()
+HP_acc['Accuracy'] = HP_accuracy
+
+HP_PC = pd.DataFrame()
+HP_PC['Accuracy'] = HP_PCA
+
+HP_L = pd.DataFrame()
+HP_L['Accuracy'] = HP_L1
+
+compareModels = pd.concat([base_accuracy, base_PCA, base_L1, HP_acc, HP_PC, HP_L], axis=1)
+print(compareModels)
+#HP_baseline =pd.DataFrame()
+# HP_baseline.append(results_rs)
+#     print(HP_baseline)
+#     compareModels = pd.concat([basedLineScore, HP_baseline], axis=1)
+#     print(compareModels)
             
    
 

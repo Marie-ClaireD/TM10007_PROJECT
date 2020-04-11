@@ -480,12 +480,12 @@ pprint(compareModels.round(2))
 clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
 names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
 param_distributions = [{}, {'n_neighbors': randint(1, 20)}, {'n_estimators': randint(1, 500),
-                        'max_features': randint(1, 30), 'max_depth': randint(1, 20),
+                        'max_features': randint(1, 17), 'max_depth': randint(1, 20),
                         'min_samples_leaf': randint(1, 20)}, {'C': randint(0.1, 100),
                         'gamma': ['auto', 'scale'], 'kernel': ['rbf', 'poly', 'sigmoid', 'linear']}]
 
 performance_clf = []
-performance_tails = []
+performance = []
 for clf, name, param_dist in zip(clsfs, names, param_distributions):
     accuracies = []
     auc_scores = []
@@ -496,7 +496,7 @@ for clf, name, param_dist in zip(clsfs, names, param_distributions):
     base_fpr = np.linspace(0, 1, 101)
     crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
     performance_scores = []
-    bas2line_performance = []
+    
     for train_index, test_index in crss_val.split(features, labels):
         x_train, x_test = features[train_index], features[test_index]
         y_train, y_test = labels[train_index], labels[test_index]
@@ -524,13 +524,15 @@ for clf, name, param_dist in zip(clsfs, names, param_distributions):
     plot_ROC(tprs, aucs, name)
 
     performance_clf.append(performance_scores)
-    print(performance_clf)
     
-    performance_tails.append(performance_scores.tail(1))
-    print(performance_tails)
-    
-    performance_test = pd.DataFrame()
-    performance_test['Classifier'] = ['LR', 'KNN', 'RF', 'SVM']
+#    perf = performance_scores.tail(1).values
+#    performance.append(list(perf[0]))
+#performance_tails = pd.DataFrame()
+#performance_tails.append(performance)
+#print(performance_tails)
+#    
+#    performance_test = pd.DataFrame()
+#    performance_test['Classifier'] = ['LR', 'KNN', 'RF', 'SVM']
     #print(performance_test)
 #    performance_result = pd.merge(performance_test, performance_scores.tail(1), how='inner', on = ['Accuracy', 'AUC', 'Sensitivity', 'Specificity']
     

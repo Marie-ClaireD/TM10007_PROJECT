@@ -393,4 +393,61 @@ for clf, name, param_grid in zip(clsfs, names, param_grids):
 # # Create boxplot
 # create_boxplot(performance_clf, names)
 
-# %%
+# %% Validatie 
+
+from statistics import mean
+clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
+names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
+param_distributions = [{}, {'leaf_size': randint(1, 50),
+                        'n_neighbors': randint(1, 20), 'p': [1, 2]}, {'n_estimators': randint(1, 500),
+                        'max_features': randint(1, 30), 'max_depth': randint(1, 20),
+                        'min_samples_leaf': randint(1, 20)}, {'C': randint(0.1, 100),
+                        'gamma': ['auto', 'scale'], 'kernel': ['rbf', 'poly', 'sigmoid', 'linear']}]
+
+
+hp_performance = []
+base_performance = []
+
+for clf, name, param_dist in zip(clsfs, names, param_distributions):
+    
+    hp_scores = []
+    base_scores = []
+
+    crss_val = RepeatedStratifiedKFold(n_splits=5, n_repeats=1, random_state=None) 
+   
+    for train_index, test_index in crss_val.split(features, labels):
+        x_train, x_test = features[train_index], features[test_index]
+        y_train, y_test = labels[train_index], labels[test_index]
+        
+        # Scale data with Standard Scalar
+        x_train, x_test = scale_data(x_train, x_test)
+
+        # Apply PCA to data
+        x_train, x_test = apply_pca(x_train, x_test)
+
+        # RandomSearch for optimalization Hyperparameters
+        random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=5, cv=5, scoring='accuracy', n_jobs=-1)
+        model_rs = random_search.fit(x_train, y_train)
+        model = model_rs.best_estimator_
+        hp_score = model_rs.best_score_
+        hp_scores.append(hp_score)
+
+        # Evaluate performance on validation set
+        base_model = clf.fit(x_train, y_train)
+        b_scores = cross_val_score(base_model, x_train, y_train, cv=5)
+        base_scores.append(b_scores.mean())
+        #scores = cross_val_score(model, x_train, y_train, cv=5)
+        #hp_scores.append(scores.mean())
+        
+    base_performance.append(mean(base_scores))
+    hp_performance.append(mean(hp_scores))
+base_dataframe = pd.DataFrame()
+base_dataframe['Accuracy Base'] = base_performance
+hp_dataframe = pd.DataFrame()
+hp_dataframe['Accuracy HP'] = hp_performance
+comparemodels = pd.DataFrame()
+comparemodels['Classifier'] = ['LR', 'kNN', 'RF', 'SVM']
+comparemodels = pd.concat([comparemodels, base_dataframe, hp_dataframe], axis=1)
+comparemodels['Improvement'] = (comparemodels['Accuracy HP'] - comparemodels['Accuracy Base']/comparemodels['Accuracy Base'])
+
+pprint(comparemodels)

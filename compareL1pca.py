@@ -524,7 +524,9 @@ for clf, name, param_dist in zip(clsfs, names, param_distributions):
     plot_ROC(tprs, aucs, name)
 
     performance_clf.append(performance_scores)
-    performance_tails.append(performance_scores.
+    print(performance_clf)
+    
+    performance_tails.append(performance_scores.tail(1))
     print(performance_tails)
     
     performance_test = pd.DataFrame()

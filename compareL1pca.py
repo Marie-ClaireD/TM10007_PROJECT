@@ -279,7 +279,30 @@ def ScoreDataFrame(results):
     return scoreDataFrame
 
 #%% Assignment without hyperparameters
-
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=DeprecationWarning)
+import pandas as pd
+import numpy as np
+import statistics
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
+from sklearn.model_selection import LeaveOneOut, RepeatedStratifiedKFold, StratifiedKFold 
+from sklearn.decomposition import PCA
+from sklearn.feature_selection import SelectFromModel
+from sklearn.linear_model import LogisticRegression, Lasso
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.metrics import auc, roc_curve, accuracy_score, confusion_matrix, roc_auc_score
+from scipy import interp
+from scipy.stats import randint
+from pprint import pprint
+from sklearn.pipeline import make_pipeline, Pipeline
+from sklearn import preprocessing
+from sklearn.model_selection import cross_val_score
+import seaborn as sns
 clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
 names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
 param_distributions = [{}, {}, {}, {}]
@@ -343,17 +366,13 @@ for clf, name, param_dist in zip(clsfs, names, param_distributions):
     baseline_PCA.append(results_PCA)
     results_L1 = mean(results_L1)
     baseline_L1.append(results_L1)
-base_accuracy = pd.DataFrame()
-base_accuracy['Accuracy'] = baseline_accuracy
-print(base_accuracy)
+base_model = pd.DataFrame()
+base_model['Classifier'] = ['LR', 'KNN', 'RF', 'SVM']
+base_model['Baseline Accuracy'] = baseline_accuracy
 base_PCA = pd.DataFrame()
-base_PCA['Accuracy'] = baseline_PCA
-print(base_PCA)
+base_PCA['PCA Accuracy'] = baseline_PCA
 base_L1 = pd.DataFrame()
-base_L1['Accuracy'] = baseline_L1
-print(base_L1)
-compareModels = pd.concat([base_accuracy, base_PCA, base_L1], axis=1)
-print(compareModels)
+base_L1['L1 Accuracy'] = baseline_L1
 
 # models = GetBasedModel()
 # names,results = BasedLine2(x1_train, y_train,models)
@@ -363,9 +382,7 @@ print(compareModels)
 # names,results = BasedLine2(x_train, y_train,models)
 # NoHP_PCA = ScoreDataFrame(names, results)
 
-
-#%% Assignment with hyperparameters
-
+# With Hyperparameters
 clsfs = [LogisticRegression(), KNeighborsClassifier(), RandomForestClassifier(bootstrap=True, random_state=None), SVC(probability=True)]
 names = ['Logistic Regression', 'kNN', 'Random Forest', 'SVM']
 param_distributions = [{}, {'leaf_size': randint(1, 50),
@@ -433,15 +450,22 @@ for clf, name, param_dist in zip(clsfs, names, param_distributions):
     results_L1 = mean(results_L1)
     HP_L1.append(results_L1)
 HP_acc = pd.DataFrame()
-HP_acc['Accuracy'] = HP_accuracy
+HP_acc['Accuracy HP'] = HP_accuracy
 
 HP_PC = pd.DataFrame()
-HP_PC['Accuracy'] = HP_PCA
+HP_PC['Accuracy PCA HP'] = HP_PCA
 
 HP_L = pd.DataFrame()
-HP_L['Accuracy'] = HP_L1
+HP_L['Accuracy L1 HP'] = HP_L1
 
-compareModels = pd.concat([base_accuracy, base_PCA, base_L1, HP_acc, HP_PC, HP_L], axis=1)
+
+
+compareModels = pd.concat([[base_model, HP_acc, base_PCA, HP_PC,base_L1, HP_L], axis=1)
+compareModels['Improvement baseline']= (compareModels['Accuracy HP'] - compareModels['Baseline Accuracy']/compareModels['Baseline Accuracy'])
+compareModels['Improvement PCA']= (compareModels['Accuracy PCA HP']- compareModels['PCA Accuracy']/compareModels['PCA Accuracy'])
+compareModels['Improvement L1']= (compareModels['Accuracy L1 HP']- compareModels['L1 Accuracy']/compareModels['L1 Accuracy'])
+
+
 print(compareModels)
 #HP_baseline =pd.DataFrame()
 # HP_baseline.append(results_rs)
